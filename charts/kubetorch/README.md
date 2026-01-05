@@ -79,7 +79,7 @@ A Helm chart for kubetorch
 | kubetorchController.resources.memory.request | string | `"2Gi"` |  |
 | kubetorchController.servicePort | int | `8080` |  |
 | kubetorchController.storage.size | string | `"1Gi"` |  |
-| kubetorchController.tag | string | `"0.4.0"` |  |
+| kubetorchController.tag | string | `"sb-controller"` |  |
 | kubetorchController.tolerations | list | `[]` |  |
 | logStreaming.enabled | bool | `true` |  |
 | logStreaming.ingestionBurstSizeMb | int | `20` |  |

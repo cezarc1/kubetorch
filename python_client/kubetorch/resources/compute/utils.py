@@ -249,7 +249,7 @@ def load_configmaps(
 
 # ----------------- Resource Deletion Utils ----------------- #
 def delete_configmaps(
-    configmaps: List[str],
+    service_name: str,
     namespace: str,
     console: "Console" = None,
     force: bool = False,
@@ -262,24 +262,21 @@ def delete_configmaps(
         propagation_policy = "Foreground"
 
     controller_client = kubetorch.globals.controller_client()
-    for cm in configmaps:
-        try:
-            controller_client.delete_config_map(
-                namespace=namespace,
-                name=cm,
-                grace_period_seconds=grace_period_seconds,
-                propagation_policy=propagation_policy,
-            )
-            if console:
+    try:
+        deleted_configmaps = controller_client.delete_service_config_maps(
+            namespace=namespace,
+            service_name=service_name,
+            grace_period_seconds=grace_period_seconds,
+            propagation_policy=propagation_policy,
+        )
+        if console:
+            for cm in deleted_configmaps:
                 console.print(f"✓ Deleted configmap [blue]{cm}[/blue]")
-        except Exception as e:
-            # Handle both ApiException (legacy) and HTTP errors from controller
-            if http_not_found(e):
-                if console:
-                    console.print(f"[yellow]Warning:[/yellow] ConfigMap {cm} not found")
-            else:
-                if console:
-                    console.print(f"[red]Error:[/red] Failed to delete configmap {cm}: {e}")
+    except Exception as e:
+        if console:
+            console.print(f"[red]Error:[/red] Failed to delete {service_name} configmaps: {e}")
+        else:
+            raise e
 
 
 def delete_knative_service(
@@ -316,63 +313,59 @@ def delete_knative_service(
                 console.print(f"[red]Error:[/red] Failed to delete service {name}: {e}")
 
 
-def delete_resources_for_service(
-    configmaps: List[str],
-    name: str,
-    service_type: str = "knative",
+def delete_resources_for_services(
+    services: Union[str, List],
     namespace: str = None,
-    console: "Console" = None,
     force: bool = False,
+    prefix: Optional[bool] = None,
+    teardown_all: Optional[bool] = None,
+    username: Optional[str] = None,
+    exact_match: Optional[bool] = None,
+    recursive_cache_delete: Optional[bool] = None,
 ):
     """Delete the relevant k8s resource(s) based on service type.
 
     Uses the same teardown path as the Python API (module.teardown() -> service_manager.teardown_service()).
     """
-    from kubetorch.provisioning.service_manager import ServiceManager
-    from kubetorch.provisioning.utils import SUPPORTED_TRAINING_JOBS
 
-    if service_type == "selector":
-        # BYO (selector-based) compute mode:
-        # The user applied the Kubernetes manifest themselves (e.g., via kubectl, Helm, or ArgoCD).
-        # Kubetorch did not create or own the K8s resources, so teardown only removes
-        # Kubetorch controller state and associated metadata — not the underlying pods/deployments/services
-        msg = (
-            f"Resources for {name} were created outside Kubetorch. You are responsible for deleting "
-            "the actual Kubernetes resources (pods, deployments, services, etc.)."
-        )
-        # For selector-based pools, just delete the controller pool (no K8s resource to delete)
-        service_manager = ServiceManager(resource_type="selector", namespace=namespace)
-        service_manager.teardown_service(service_name=name, console=console, force=force)
-        if console:
-            console.print(f"[yellow]{msg}[/yellow]")
+    # TODO: handle printing this msg
+    # BYO (selector-based) compute mode:
+    # The user applied the Kubernetes manifest themselves (e.g., via kubectl, Helm, or ArgoCD).
+    # Kubetorch did not create or own the K8s resources, so teardown only removes
+    # Kubetorch controller state and associated metadata — not the underlying pods/deployments/services
+    # msg = (
+    #     f"Resources for {name} were created outside Kubetorch. You are responsible for deleting "
+    #     "the actual Kubernetes resources (pods, deployments, services, etc.)."
+    # )
+    from kubetorch import globals
+
+    controller_client = globals.controller_client()
+    delete_result = controller_client.delete_services(
+        namespace=namespace,
+        name=services,
+        force=force,
+        prefix=prefix,
+        teardown_all=teardown_all,
+        username=username,
+        exact_match=exact_match,
+        recursive_cache_delete=recursive_cache_delete,
+    )
+    return delete_result
+
+
+def handle_controller_delete_error(service_name: str, controller_error: str, console=None):
+    if "404" in controller_error:
+        if service_name:
+            error_msg = f"Service {service_name.lower()} not found"
         else:
-            logger.warning(msg)
+            error_msg = "No services found"
     else:
-        # manifest applied via kubetorch
-        supported_types = ["deployment", "raycluster", "knative"] + [k.lower() for k in SUPPORTED_TRAINING_JOBS]
-        if service_type in supported_types:
-            service_manager = ServiceManager(resource_type=service_type, namespace=namespace)
-        else:
-            msg = f"Unknown service type: {service_type}, skipping teardown"
-            if console:
-                console.print(f"[yellow]{msg}[/yellow]")
-            else:
-                logger.warning(msg)
-            return
+        error_msg = controller_error.split(":")[-1]
 
-        # Use the same teardown path as the Python API to tear down
-        service_manager.teardown_service(service_name=name, console=console, force=force)
-
-    # Delete configmaps
-    if configmaps:
-        delete_configmaps(
-            configmaps=configmaps,
-            namespace=namespace,
-            console=console,
-            force=force,
-        )
-
-    delete_cached_service_data(service_name=name, namespace=namespace, console=console)
+    if console:
+        console.print(error_msg)
+    else:
+        logger.error(error_msg)
 
 
 def delete_cached_service_data(

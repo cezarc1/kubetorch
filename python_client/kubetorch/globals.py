@@ -9,7 +9,7 @@ import time
 
 from dataclasses import dataclass
 from functools import cache
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import httpx
 
@@ -526,9 +526,30 @@ class ControllerClient:
         """Get a Service"""
         return self.get(f"/api/v1/namespaces/{namespace}/services/{name}", ignore_not_found=ignore_not_found)
 
-    def delete_service(self, namespace: str, name: str, ignore_not_found=False) -> Dict[str, Any]:
-        """Delete a Service"""
-        return self.delete(f"/api/v1/namespaces/{namespace}/services/{name}", ignore_not_found=ignore_not_found)
+    def delete_services(
+        self,
+        namespace: str,
+        name: Optional[Union[str, dict]] = None,
+        force: Optional[bool] = None,
+        prefix: Optional[bool] = None,
+        teardown_all: Optional[bool] = None,
+        username: Optional[str] = None,
+        exact_match: Optional[bool] = None,
+        recursive_cache_delete: Optional[bool] = None,
+        ignore_not_found: Optional[bool] = None,
+    ) -> Dict[str, Any]:
+        """Delete k8 Services + pools"""
+        params = {
+            "name": name,
+            "force": force,
+            "prefix": prefix,
+            "teardown_all": teardown_all,
+            "username": username,
+            "exact_match": exact_match,
+            "recursive_cache_delete": recursive_cache_delete,
+        }
+        params = {k: v for k, v in params.items() if v is not None}
+        return self.delete(f"/api/v1/namespaces/{namespace}/services", ignore_not_found=ignore_not_found, json=params)
 
     def list_services(self, namespace: str, label_selector: Optional[str] = None) -> Dict[str, Any]:
         """List Services"""
@@ -629,6 +650,21 @@ class ControllerClient:
             params["propagation_policy"] = propagation_policy
         return self.delete(f"/api/v1/namespaces/{namespace}/pods/{name}", params=params, ignore_not_found=True)
 
+    def delete_service_pods(
+        self,
+        namespace: str,
+        service_name: str,
+        grace_period_seconds: Optional[int] = None,
+        propagation_policy: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Delete all pods associated with the service."""
+        params = {}
+        if grace_period_seconds is not None:
+            params["grace_period_seconds"] = str(grace_period_seconds)
+        if propagation_policy:
+            params["propagation_policy"] = propagation_policy
+        return self.delete(f"/api/v1/namespaces/{namespace}/services/{service_name}/pods", params=params)
+
     def get_pod_logs(
         self, namespace: str, name: str, container: Optional[str] = None, tail_lines: Optional[int] = None
     ) -> str:
@@ -706,6 +742,21 @@ class ControllerClient:
         if propagation_policy:
             params["propagation_policy"] = propagation_policy
         return self.delete(f"/api/v1/namespaces/{namespace}/configmaps/{name}", params=params)
+
+    def delete_service_config_maps(
+        self,
+        namespace: str,
+        service_name: str,
+        grace_period_seconds: Optional[int] = None,
+        propagation_policy: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Delete all ConfigMaps associated with the service."""
+        params = {}
+        if grace_period_seconds is not None:
+            params["grace_period_seconds"] = str(grace_period_seconds)
+        if propagation_policy:
+            params["propagation_policy"] = propagation_policy
+        return self.delete(f"/api/v1/namespaces/{namespace}/services/{service_name}/configmaps", params=params)
 
     # Custom Resource Definitions (CRDs)
     def create_namespaced_custom_object(
