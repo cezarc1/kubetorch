@@ -105,6 +105,9 @@ class DebugConfig:
     mode: Literal["pdb", "pdb-ui"] = "pdb"
     port: int = 5678  # DEFAULT_DEBUG_PORT
 
+    def to_dict(self):
+        return {"mode": self.mode, "port": self.port}
+
 
 @dataclass(frozen=True)
 class PFHandle:
@@ -810,6 +813,3 @@ def controller_client() -> ControllerClient:
         health_endpoint=DEFAULT_NGINX_HEALTH_ENDPOINT,
     )
     return ControllerClient(base_url=base_url)
-
-
-# added a comment to trigger CI

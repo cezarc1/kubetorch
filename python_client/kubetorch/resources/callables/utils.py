@@ -5,7 +5,9 @@ import os
 from pathlib import Path
 from typing import Callable, Optional, Type, Union
 
+from kubetorch.globals import DebugConfig
 from kubetorch.logger import get_logger
+from kubetorch.serving.constants import DEFAULT_DEBUG_PORT
 
 logger = get_logger(__name__)
 
@@ -131,22 +133,30 @@ def locate_working_dir(start_dir=None):
         "requirements.txt",
     ]
 
-    dir_with_target = _find_directory_containing_any_file(start_dir, target_files, searched_dirs=set())
+    dir_with_target, matched_file = _find_directory_containing_any_file(start_dir, target_files, searched_dirs=set())
     found_project_dir = dir_with_target is not None
-    return (dir_with_target if found_project_dir else start_dir), found_project_dir
+    working_dir = dir_with_target if found_project_dir else start_dir
+
+    return working_dir, found_project_dir, matched_file
 
 
 def _find_directory_containing_any_file(dir_path, files, searched_dirs=None):
-    if Path(dir_path) == Path.home() or dir_path == Path("/"):
-        return None
+    """Find the nearest parent directory containing any of the specified files.
 
-    if any(Path(dir_path, file).exists() for file in files):
-        return str(dir_path)
+    Returns:
+        tuple: (directory_path, matched_file) or (None, None) if not found.
+    """
+    if Path(dir_path) == Path.home() or dir_path == Path("/"):
+        return None, None
+
+    for file in files:
+        if Path(dir_path, file).exists():
+            return str(dir_path), file
 
     searched_dirs.add(dir_path)
     parent_path = Path(dir_path).parent
     if parent_path in searched_dirs:
-        return None
+        return None, None
     return _find_directory_containing_any_file(parent_path, files, searched_dirs=searched_dirs)
 
 
@@ -201,3 +211,51 @@ def get_names_for_reload_fallbacks(name: str, prefixes: list[str] = []):
         potential_names.append(name)
 
     return potential_names
+
+
+def add_debugger_config_to_body(body: dict, debug: Union[bool, DebugConfig], pdb):
+    # Handle debug parameter (new) or pdb parameter (backward compatibility)
+    # Add deprecation warning for pdb parameter
+    if pdb:
+        import warnings
+
+        warnings.warn(
+            "The 'pdb' parameter is deprecated and will be removed in a future version. "
+            "Please use 'debug' parameter instead.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+
+    # debug parameter takes precedence over pdb
+    if debug is not None:
+        if isinstance(debug, DebugConfig):
+            debugger_config = debug
+        elif isinstance(debug, bool):
+            if debug:
+                debug_port = DEFAULT_DEBUG_PORT
+                # Get debug mode from environment, default to "pdb"
+                debug_mode = os.getenv("KT_DEBUG_MODE", "pdb").lower()
+                debugger_config = DebugConfig(port=debug_port, mode=debug_mode)
+        else:
+            raise ValueError(
+                f"debug parameter must be a bool or DebugConfig instance, got {type(debug).__name__}. "
+                "Use debug=True or debug=kt.DebugConfig(port=..., mode=...) instead."
+            )
+    elif pdb:
+        # Backward compatibility with pdb parameter
+        debug_port = DEFAULT_DEBUG_PORT if isinstance(pdb, bool) else pdb
+        debug_mode = os.getenv("KT_DEBUG_MODE", "pdb").lower()
+        debugger_config = DebugConfig(port=debug_port, mode=debug_mode)
+
+    body["debugger"] = debugger_config.to_dict()
+
+    return body
+
+
+def build_call_body(*args, debug: Union[bool, DebugConfig] = None, pdb=None, **kwargs):
+    body = {"args": list(args), "kwargs": kwargs}
+
+    if debug or pdb:
+        body = add_debugger_config_to_body(body=body, debug=debug, pdb=pdb)
+
+    return body
