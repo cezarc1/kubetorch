@@ -158,6 +158,12 @@ class ProcessWorker(multiprocessing.Process):
 
     def run(self):
         """Main process loop with thread pool for concurrent request handling."""
+        # Create a new process group so we can kill all descendants on shutdown
+        try:
+            os.setpgrp()
+        except OSError:
+            pass
+
         # Set up subprocess log capture to push logs to main process via queue
         # Uses LogCapture in queue mode - same capture logic, different emit target
         self._log_capture = create_subprocess_log_capture(self._log_queue)
