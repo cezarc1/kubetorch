@@ -105,6 +105,7 @@ def test_build_job_manifest_wraps_command_with_run_identity():
         image="ghcr.io/run-house/server:0.5.0",
         env={"TRAINING_MODE": "sft"},
         resources={"requests": {"cpu": "1", "memory": "2Gi"}},
+        image_pull_secrets=["ghcr-pull-secret"],
     )
 
     assert manifest["apiVersion"] == "batch/v1"
@@ -116,6 +117,7 @@ def test_build_job_manifest_wraps_command_with_run_identity():
     pod_spec = manifest["spec"]["template"]["spec"]
     assert pod_spec["restartPolicy"] == "Never"
     assert pod_spec["serviceAccountName"] == "kubetorch-service-account"
+    assert pod_spec["imagePullSecrets"] == [{"name": "ghcr-pull-secret"}]
 
     container = pod_spec["containers"][0]
     assert container["image"] == "ghcr.io/run-house/server:0.5.0"
@@ -258,6 +260,8 @@ def test_cli_run_submits_batch_run(monkeypatch, tmp_path):
             str(tmp_path),
             "--env",
             "TRAINING_MODE=sft",
+            "--image-pull-secret",
+            "ghcr-pull-secret",
             "--",
             "python",
             "train.py",
@@ -278,6 +282,7 @@ def test_cli_run_submits_batch_run(monkeypatch, tmp_path):
             "intent": "sft smoke",
             "env": {"TRAINING_MODE": "sft"},
             "resources": None,
+            "image_pull_secrets": ["ghcr-pull-secret"],
             "name": None,
         }
     ]

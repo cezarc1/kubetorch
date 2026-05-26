@@ -1368,6 +1368,11 @@ def kt_run(
     image: str = typer.Option(None, "--image", "-i", help="Container image for the run"),
     source_dir: Path = typer.Option(Path("."), "--source-dir", help="Directory to snapshot into the run workdir"),
     env: List[str] = typer.Option(None, "--env", "-e", help="Environment variable in KEY=VALUE form"),
+    image_pull_secrets: List[str] = typer.Option(
+        None,
+        "--image-pull-secret",
+        help="Kubernetes imagePullSecret name to attach to the run Job; repeatable",
+    ),
     resources: str = typer.Option(None, "--resources", help="JSON Kubernetes resources object"),
 ):
     """
@@ -1400,6 +1405,7 @@ def kt_run(
         intent=intent,
         env=env_map,
         resources=resources_obj,
+        image_pull_secrets=image_pull_secrets,
         name=name,
     )
     console.print(f"[green]Submitted run {result['run_id']}[/green]")

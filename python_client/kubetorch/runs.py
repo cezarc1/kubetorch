@@ -61,6 +61,7 @@ def build_job_manifest(
     resources: Optional[Dict[str, Any]] = None,
     labels: Optional[Dict[str, str]] = None,
     annotations: Optional[Dict[str, str]] = None,
+    image_pull_secrets: Optional[list[str]] = None,
     service_account_name: str = provisioning_constants.DEFAULT_SERVICE_ACCOUNT_NAME,
 ) -> Dict[str, Any]:
     """Build the Kubernetes Job that executes a run-scoped command."""
@@ -98,6 +99,14 @@ def build_job_manifest(
         metadata["annotations"] = annotations
         pod_metadata["annotations"] = annotations
 
+    pod_spec = {
+        "restartPolicy": "Never",
+        "serviceAccountName": service_account_name,
+        "containers": [container],
+    }
+    if image_pull_secrets:
+        pod_spec["imagePullSecrets"] = [{"name": secret_name} for secret_name in image_pull_secrets]
+
     return {
         "apiVersion": "batch/v1",
         "kind": "Job",
@@ -106,11 +115,7 @@ def build_job_manifest(
             "backoffLimit": 0,
             "template": {
                 "metadata": pod_metadata,
-                "spec": {
-                    "restartPolicy": "Never",
-                    "serviceAccountName": service_account_name,
-                    "containers": [container],
-                },
+                "spec": pod_spec,
             },
         },
     }
@@ -126,6 +131,7 @@ def submit_batch_run(
     resources: Optional[Dict[str, Any]] = None,
     labels: Optional[Dict[str, str]] = None,
     annotations: Optional[Dict[str, str]] = None,
+    image_pull_secrets: Optional[list[str]] = None,
     name: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Create a run record, upload source, and submit a Kubernetes Job."""
@@ -157,6 +163,7 @@ def submit_batch_run(
         resources=resources,
         labels=labels,
         annotations=annotations,
+        image_pull_secrets=image_pull_secrets,
     )
     job_name = manifest["metadata"]["name"]
     run_payload = {
