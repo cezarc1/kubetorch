@@ -24,6 +24,7 @@ from kubetorch.resources.compute.utils import (
 from kubetorch.resources.images.image import Image  # noqa: F401
 from kubetorch.resources.secrets import Secret, secret  # noqa: F401
 from kubetorch.resources.volumes.volume import Volume  # noqa: F401  # noqa: F401
+from kubetorch.runs import artifact, note  # noqa: F401
 from kubetorch.serving.utils import (  # noqa: F401
     deep_breakpoint,
     PodTerminatedError,
@@ -31,7 +32,7 @@ from kubetorch.serving.utils import (  # noqa: F401
     WorkerMembershipChanged,
 )
 
-from . import distributed
+from . import distributed, runs
 from .resources import images
 
 # Alias to expose as kt.images
@@ -39,6 +40,7 @@ images = images
 
 # Alias to expose as kt.distributed
 distributed = distributed
+runs = runs
 
 # Registry of all kubetorch exceptions for serialization/deserialization
 EXCEPTION_REGISTRY = {

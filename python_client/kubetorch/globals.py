@@ -513,6 +513,12 @@ class ControllerClient:
         response = self._request("POST", path, json=json, timeout=timeout, **kwargs)
         return response.json()
 
+    def put(self, path: str, json: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+        """PUT request to controller. Defaults to read timeout, pass timeout=None for no timeout."""
+        timeout = kwargs.pop("timeout", self._read_timeout)
+        response = self._request("PUT", path, json=json, timeout=timeout, **kwargs)
+        return response.json()
+
     def delete(self, path: str, ignore_not_found=False, **kwargs) -> Dict[str, Any]:
         """DELETE request to controller. Defaults to read timeout, pass timeout=None for no timeout."""
         timeout = kwargs.pop("timeout", self._read_timeout)
@@ -859,6 +865,68 @@ class ControllerClient:
     def get_connections(self) -> Dict[str, Any]:
         """Get WebSocket connection debug info (connected pods for each workload)."""
         return self.get("/controller/debug/connections")
+
+    # Runs
+    def create_run(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a run record."""
+        return self.post("/controller/runs", json=body)
+
+    def list_runs(self, namespace: Optional[str] = None, author: Optional[str] = None) -> Dict[str, Any]:
+        """List run records."""
+        params = {}
+        if namespace:
+            params["namespace"] = namespace
+        if author:
+            params["author"] = author
+        return self.get("/controller/runs", params=params)
+
+    def get_run(self, run_id: str) -> Dict[str, Any]:
+        """Get a run record."""
+        return self.get(f"/controller/runs/{run_id}")
+
+    def update_run_status(self, run_id: str, status: str, exit_code: Optional[int] = None) -> Dict[str, Any]:
+        """Update run lifecycle status."""
+        body = {"status": status}
+        if exit_code is not None:
+            body["exit_code"] = exit_code
+        return self.patch(f"/controller/runs/{run_id}/status", json=body)
+
+    def put_run_logs(self, run_id: str, logs: str) -> Dict[str, Any]:
+        """Persist final run logs."""
+        return self.put(f"/controller/runs/{run_id}/logs", json={"logs": logs})
+
+    def get_run_logs(self, run_id: str) -> str:
+        """Get persisted run logs as plain text."""
+        url = f"{self.base_url}/controller/runs/{run_id}/logs"
+        response = self.session.request("GET", url, timeout=self._read_timeout)
+        response.raise_for_status()
+        return response.text
+
+    def add_run_note(self, run_id: str, body: str, author: Optional[str] = None) -> Dict[str, Any]:
+        """Attach an append-only note to a run."""
+        payload = {"body": body}
+        if author:
+            payload["author"] = author
+        return self.post(f"/controller/runs/{run_id}/notes", json=payload)
+
+    def add_run_artifact(
+        self,
+        run_id: str,
+        name: str,
+        uri: str,
+        kind: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        author: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Attach a reference-only artifact pointer to a run."""
+        payload = {"name": name, "uri": uri}
+        if kind:
+            payload["kind"] = kind
+        if metadata:
+            payload["metadata"] = metadata
+        if author:
+            payload["author"] = author
+        return self.post(f"/controller/runs/{run_id}/artifacts", json=payload)
 
     def discover_resources(
         self,
