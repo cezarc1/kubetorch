@@ -134,7 +134,7 @@ def submit_batch_run(
 
     namespace = namespace or globals.config.namespace
     source_dir = Path(source_dir or Path.cwd()).resolve()
-    image = image or provisioning_constants.SERVER_IMAGE_MINIMAL
+    image = image or provisioning_constants.KUBETORCH_IMAGE
     run_id = generate_run_id(name)
     source_key = source_key_for_run(run_id)
     logs_key = logs_key_for_run(run_id)

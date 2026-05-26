@@ -27,6 +27,7 @@ def _versioned_image(image_name: str) -> str:
 
 SERVER_IMAGE_MINIMAL = _versioned_image("server")
 SERVER_IMAGE_WITH_OTEL = _versioned_image("server-otel")
+KUBETORCH_IMAGE = _versioned_image("kubetorch")
 
 UBUNTU_IMAGE_MINIMAL = _versioned_image("ubuntu")
 UBUNTU_IMAGE_WITH_OTEL = _versioned_image("ubuntu-otel")

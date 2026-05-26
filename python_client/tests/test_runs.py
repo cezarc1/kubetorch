@@ -129,6 +129,43 @@ def test_build_job_manifest_wraps_command_with_run_identity():
 
 
 @pytest.mark.level("unit")
+def test_submit_batch_run_defaults_to_kubetorch_runtime_image(monkeypatch, tmp_path):
+    from kubetorch import __version__, runs
+
+    calls = []
+
+    class FakeDataStore:
+        def __init__(self, namespace):
+            pass
+
+        def put(self, key, src, contents=False, filter_options=None, force=False):
+            pass
+
+    class FakeController:
+        def create_run(self, body):
+            calls.append(("create-run", body))
+            return {"run_id": body["run_id"], "status": "created"}
+
+        def post(self, path, json, timeout=None):
+            calls.append(("post", path, json))
+            return {"status": "success"}
+
+    monkeypatch.setattr(runs, "DataStoreClient", FakeDataStore)
+    monkeypatch.setattr(runs, "controller_client", lambda: FakeController())
+    monkeypatch.setattr(runs, "generate_run_id", lambda name=None: "run-default-image")
+
+    source_dir = tmp_path / "project"
+    source_dir.mkdir()
+
+    result = runs.submit_batch_run(command=["python", "-c", "print('ok')"], namespace="kubetorch", source_dir=source_dir)
+
+    expected_image = f"ghcr.io/run-house/kubetorch:{__version__}"
+    assert calls[0][1]["image"] == expected_image
+    assert calls[1][2]["resource_manifest"]["spec"]["template"]["spec"]["containers"][0]["image"] == expected_image
+    assert result["job_name"] == "kt-run-default-image"
+
+
+@pytest.mark.level("unit")
 def test_submit_batch_run_creates_run_uploads_source_and_applies_job(monkeypatch, tmp_path):
     from kubetorch import runs
 
