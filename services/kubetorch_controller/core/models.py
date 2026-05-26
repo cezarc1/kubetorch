@@ -258,6 +258,102 @@ class DeployResponse(BaseModel):
 
 
 # ============================================================================
+# Run Request/Response Models
+# ============================================================================
+
+
+class RunCreateRequest(BaseModel):
+    run_id: str
+    namespace: str
+    command: List[str]
+    source_key: str
+    author: Optional[str] = None
+    intent: Optional[str] = None
+    logs_key: Optional[str] = None
+    image: Optional[str] = None
+    resources: Optional[Dict[str, Any]] = None
+    env: Optional[Dict[str, Any]] = None
+    job_name: Optional[str] = None
+    labels: Optional[Dict[str, Any]] = None
+    annotations: Optional[Dict[str, Any]] = None
+
+
+class RunStatusUpdateRequest(BaseModel):
+    status: str
+    exit_code: Optional[int] = None
+
+
+class RunLogsUpdateRequest(BaseModel):
+    logs: str
+
+
+class RunNoteCreateRequest(BaseModel):
+    body: str
+    author: Optional[str] = None
+
+
+class RunArtifactCreateRequest(BaseModel):
+    name: str
+    uri: str
+    kind: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+    author: Optional[str] = None
+
+
+class RunNoteResponse(BaseModel):
+    id: int
+    run_id: str
+    author: Optional[str] = None
+    body: str
+    created_at: Optional[str] = None
+
+
+class RunArtifactResponse(BaseModel):
+    id: int
+    run_id: str
+    name: str
+    uri: str
+    kind: Optional[str] = None
+    metadata: Dict[str, Any] = {}
+    author: Optional[str] = None
+    created_at: Optional[str] = None
+
+
+class RunResponse(BaseModel):
+    id: int
+    run_id: str
+    namespace: str
+    author: Optional[str] = None
+    intent: Optional[str] = None
+    command: List[str]
+    status: str
+    exit_code: Optional[int] = None
+    source_key: str
+    logs_key: Optional[str] = None
+    image: Optional[str] = None
+    resources: Dict[str, Any] = {}
+    env: Dict[str, Any] = {}
+    job_name: Optional[str] = None
+    labels: Dict[str, Any] = {}
+    annotations: Dict[str, Any] = {}
+    created_at: Optional[str] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    notes: List[RunNoteResponse] = []
+    artifacts: List[RunArtifactResponse] = []
+
+
+class RunListResponse(BaseModel):
+    runs: List[RunResponse]
+
+
+class RunLogsUpdateResponse(BaseModel):
+    run_id: str
+    logs_bytes: int
+
+
+# ============================================================================
 # Delete Resource Request/Response Models
 # ============================================================================
 class ServiceTeardownRequest(BaseModel):

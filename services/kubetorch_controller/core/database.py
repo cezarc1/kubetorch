@@ -118,6 +118,113 @@ class Pool(Base):
         }
 
 
+class Run(Base):
+    """Model for an immutable batch run.
+
+    A Run is the primary durable record for a batch ML attempt. It stores the
+    command, run-scoped source/log locations, sanitized runtime metadata, and
+    the Kubernetes Job identity used to execute the attempt.
+    """
+
+    __tablename__ = "runs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    run_id = Column(String, nullable=False, unique=True, index=True)
+    namespace = Column(String, nullable=False, index=True)
+    author = Column(String, nullable=True, index=True)
+    intent = Column(Text, nullable=True)
+    command = Column(Text, nullable=False)
+    status = Column(String, nullable=False, default="created", index=True)
+    exit_code = Column(Integer, nullable=True)
+    source_key = Column(String, nullable=False)
+    logs_key = Column(String, nullable=True)
+    logs = Column(Text, nullable=True)
+    image = Column(String, nullable=True)
+    resources = Column(Text, nullable=True)
+    env = Column(Text, nullable=True)
+    job_name = Column(String, nullable=True)
+    labels = Column(Text, nullable=True)
+    annotations = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self, notes=None, artifacts=None) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "run_id": self.run_id,
+            "namespace": self.namespace,
+            "author": self.author,
+            "intent": self.intent,
+            "command": json.loads(self.command) if self.command else [],
+            "status": self.status,
+            "exit_code": self.exit_code,
+            "source_key": self.source_key,
+            "logs_key": self.logs_key,
+            "image": self.image,
+            "resources": json.loads(self.resources) if self.resources else {},
+            "env": json.loads(self.env) if self.env else {},
+            "job_name": self.job_name,
+            "labels": json.loads(self.labels) if self.labels else {},
+            "annotations": json.loads(self.annotations) if self.annotations else {},
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "notes": [note.to_dict() for note in notes] if notes is not None else [],
+            "artifacts": [artifact.to_dict() for artifact in artifacts] if artifacts is not None else [],
+        }
+
+
+class RunNote(Base):
+    """Append-only note attached to a run by a user or agent."""
+
+    __tablename__ = "run_notes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    run_id = Column(String, nullable=False, index=True)
+    author = Column(String, nullable=True)
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "run_id": self.run_id,
+            "author": self.author,
+            "body": self.body,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class RunArtifactRef(Base):
+    """Reference-only artifact pointer attached to a run."""
+
+    __tablename__ = "run_artifact_refs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    run_id = Column(String, nullable=False, index=True)
+    name = Column(String, nullable=False)
+    kind = Column(String, nullable=True)
+    uri = Column(Text, nullable=False)
+    artifact_metadata = Column(Text, nullable=True)
+    author = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "run_id": self.run_id,
+            "name": self.name,
+            "kind": self.kind,
+            "uri": self.uri,
+            "metadata": json.loads(self.artifact_metadata) if self.artifact_metadata else {},
+            "author": self.author,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 # Engine and session factory
 _engine = None
 _SessionLocal = None
