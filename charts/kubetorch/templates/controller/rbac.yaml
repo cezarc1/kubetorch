@@ -102,6 +102,11 @@ rules:
       - statefulsets/status
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
+  # Batch Jobs
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
   # Queues CRD
   - apiGroups: ["scheduling.run.ai"]
     resources: ["queues"]

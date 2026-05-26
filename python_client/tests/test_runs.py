@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
@@ -163,6 +164,15 @@ def test_submit_batch_run_defaults_to_kubetorch_runtime_image(monkeypatch, tmp_p
     assert calls[0][1]["image"] == expected_image
     assert calls[1][2]["resource_manifest"]["spec"]["template"]["spec"]["containers"][0]["image"] == expected_image
     assert result["job_name"] == "kt-run-default-image"
+
+
+@pytest.mark.level("unit")
+def test_controller_chart_rbac_allows_batch_jobs():
+    chart_rbac = Path(__file__).parents[2] / "charts" / "kubetorch" / "templates" / "controller" / "rbac.yaml"
+    rbac_yaml = chart_rbac.read_text()
+
+    assert 'apiGroups: ["batch"]' in rbac_yaml
+    assert 'resources: ["jobs"]' in rbac_yaml
 
 
 @pytest.mark.level("unit")
