@@ -149,6 +149,45 @@ def key_exists_in_filesystem(key: str) -> bool:
     return fs_path is not None and fs_path.exists()
 
 
+def _delete_filesystem_path(path: Path) -> None:
+    if path.is_dir():
+        shutil.rmtree(path)
+    else:
+        path.unlink()
+
+
+def _delete_filesystem_prefix(namespace_dir: Path, key: str) -> int:
+    """Delete filesystem entries whose namespace-relative path starts with key."""
+    if not namespace_dir.exists():
+        return 0
+
+    normalized = key.strip("/")
+    candidates = []
+    for entry in namespace_dir.rglob("*"):
+        rel_path = entry.relative_to(namespace_dir).as_posix()
+        if rel_path.startswith(normalized):
+            candidates.append(entry)
+
+    selected = []
+    for candidate in sorted(
+        candidates,
+        key=lambda path: len(path.relative_to(namespace_dir).parts),
+    ):
+        if any(
+            candidate == parent or candidate.is_relative_to(parent)
+            for parent in selected
+        ):
+            continue
+        selected.append(candidate)
+
+    for entry in selected:
+        _delete_filesystem_path(entry)
+        logger.info(
+            f"Deleted filesystem entry '{entry.relative_to(namespace_dir).as_posix()}'"
+        )
+    return len(selected)
+
+
 def find_participant(
     participants: List[Dict], pod_ip: str, key: Optional[str] = None
 ) -> Optional[Dict]:
@@ -807,29 +846,19 @@ async def delete_key(
     # Delete from filesystem
     deleted_fs_count = 0
     if prefix_mode:
-        # For prefix_mode, glob the namespace directory for matching entries
         pod_namespace = get_pod_namespace()
         namespace_dir = Path(DATA_ROOT) / pod_namespace
-        if namespace_dir.exists():
-            try:
-                for entry in namespace_dir.iterdir():
-                    if entry.name.startswith(key):
-                        if entry.is_dir():
-                            shutil.rmtree(entry)
-                        else:
-                            entry.unlink()
-                        deleted_fs_count += 1
-                        logger.info(f"Deleted filesystem entry '{entry.name}'")
-                if deleted_fs_count > 0:
-                    deleted_from_filesystem = True
-            except Exception as e:
-                logger.error(
-                    f"Failed to delete filesystem entries with prefix '{key}': {e}"
-                )
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Failed to delete from filesystem: {str(e)}",
-                )
+        try:
+            deleted_fs_count = _delete_filesystem_prefix(namespace_dir, key)
+            deleted_from_filesystem = deleted_fs_count > 0
+        except Exception as e:
+            logger.error(
+                f"Failed to delete filesystem entries with prefix '{key}': {e}"
+            )
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to delete from filesystem: {str(e)}",
+            )
     else:
         fs_path = key_to_filesystem_path(key)
         if fs_path and fs_path.exists():

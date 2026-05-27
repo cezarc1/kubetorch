@@ -89,6 +89,7 @@ from routes import (
     nodes_router,
     pods_router,
     pool_router,
+    runs_router,
     secrets_router,
     services_router,
     teardown_router,
@@ -103,6 +104,7 @@ init_db()
 k8s.init(apps_v1, core_v1, custom_objects, dynamic_client)
 
 app.include_router(pool_router)
+app.include_router(runs_router)
 app.include_router(apply_router)
 app.include_router(configmaps_router)
 app.include_router(deploy_router)

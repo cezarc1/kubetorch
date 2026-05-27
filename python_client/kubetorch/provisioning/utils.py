@@ -2,7 +2,6 @@ import copy
 import os
 import socket
 import time
-import warnings
 
 from pathlib import Path
 from typing import Dict, Optional
@@ -62,7 +61,7 @@ def check_kubetorch_versions(response):
         if not os.getenv("KUBETORCH_IGNORE_VERSION_MISMATCH"):
             raise VersionMismatchError(msg)
 
-        warnings.warn(f"Kubetorch version mismatch: {msg}")
+        logger.debug("Ignoring Kubetorch version mismatch: %s", msg)
 
 
 def extract_config_from_nginx_health_check(response):

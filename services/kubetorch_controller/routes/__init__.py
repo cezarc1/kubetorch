@@ -9,6 +9,7 @@ from routes.ingresses import router as ingresses_router
 from routes.nodes import router as nodes_router
 from routes.pods import router as pods_router
 from routes.pool import router as pool_router
+from routes.runs import router as runs_router
 from routes.secrets import router as secrets_router
 from routes.services import router as services_router
 from routes.teardown import router as teardown_router
@@ -17,6 +18,7 @@ from routes.ws_pods import router as ws_pods_router
 
 __all__ = [
     "pool_router",
+    "runs_router",
     "apply_router",
     "configmaps_router",
     "deploy_router",

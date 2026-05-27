@@ -1,6 +1,4 @@
 import base64
-import importlib
-import inspect
 import json
 import os
 import shlex
@@ -60,7 +58,7 @@ except ImportError:
 
 import kubetorch.provisioning.constants as provisioning_constants
 
-from kubetorch import globals
+from kubetorch import globals, runs
 from kubetorch.config import ENV_MAPPINGS
 from kubetorch.serving.utils import DEFAULT_DEBUG_PORT
 
@@ -77,7 +75,13 @@ from .logger import get_logger
 
 app = typer.Typer(add_completion=False)
 server_app = typer.Typer(help="Kubetorch server commands.")
+runs_app = typer.Typer(help="Inspect and annotate Kubetorch batch runs.")
+runs_note_app = typer.Typer(help="Manage run notes.")
+runs_artifact_app = typer.Typer(help="Manage run artifact references.")
 app.add_typer(server_app, name="server")
+app.add_typer(runs_app, name="runs")
+runs_app.add_typer(runs_note_app, name="note")
+runs_app.add_typer(runs_artifact_app, name="artifact")
 console = Console()
 
 # Register internal CLI commands if available
@@ -1355,78 +1359,174 @@ def kt_port_forward(
 @app.command("run", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
 def kt_run(
     ctx: typer.Context,
-    name: str = typer.Option(None, "--name", help="Name for the run"),
-    run_async: bool = typer.Option(False, "--async", help="Whether to run async and not stream logs live"),
-    file: int = typer.Option(None, "--file", help="File where the app is defined in"),
+    name: str = typer.Option(None, "--name", help="Human-readable run id prefix"),
+    intent: str = typer.Option(None, "--intent", help="Short description of what this run explores"),
+    namespace: str = typer.Option(globals.config.namespace, "--namespace", "-n", help="Kubernetes namespace"),
+    image: str = typer.Option(None, "--image", "-i", help="Container image for the run"),
+    source_dir: Path = typer.Option(Path("."), "--source-dir", help="Directory to snapshot into the run workdir"),
+    env: List[str] = typer.Option(None, "--env", "-e", help="Environment variable in KEY=VALUE form"),
+    image_pull_secrets: List[str] = typer.Option(
+        None,
+        "--image-pull-secret",
+        help="Kubernetes imagePullSecret name to attach to the run Job; repeatable",
+    ),
+    resources: str = typer.Option(None, "--resources", help="JSON Kubernetes resources object"),
 ):
     """
-    Build and deploy a kubetorch app that runs the provided CLI command. In order for the app
-    to be deployed, the file being run must be a Python file specifying a `kt.app` construction
-    at the top of the file.
+    Submit a batch run as a Kubernetes Job.
 
     Examples:
 
     .. code-block:: bash
 
-        $ kt run python train.py --epochs 5
-        $ kt run fastapi run my_app.py --name fastapi-app
+        $ kt run -- python train.py --epochs 5
+        $ kt run --intent "sft baseline" -- python train.py --config configs/sft.yaml
     """
-    from kubetorch import App
+    command = list(ctx.args)
+    if not command:
+        raise typer.BadParameter("You must provide a command after `kt run --`.")
 
-    cli_cmd = " ".join(ctx.args)
-    if not cli_cmd:
-        raise typer.BadParameter("You must provide a command to run.")
-    elif cli_cmd.split()[0].endswith(".py"):
-        raise typer.BadParameter(
-            "You must provide a full command to run, the Python file should not be the first argument. "
-            "(e.g. `kt run python train.py`)"
+    env_map = {}
+    for item in env or []:
+        if "=" not in item:
+            raise typer.BadParameter(f"--env must be KEY=VALUE, got: {item}")
+        key, value = item.split("=", 1)
+        env_map[key] = value
+
+    resources_obj = json.loads(resources) if resources else None
+    result = runs.submit_batch_run(
+        command=command,
+        namespace=namespace,
+        source_dir=source_dir,
+        image=image,
+        intent=intent,
+        env=env_map,
+        resources=resources_obj,
+        image_pull_secrets=image_pull_secrets,
+        name=name,
+    )
+    console.print(f"[green]Submitted run {result['run_id']}[/green]")
+    if result.get("job_name"):
+        console.print(f"Job: {result['job_name']}")
+
+
+@runs_app.command("list")
+def kt_runs_list(
+    namespace: str = typer.Option(None, "--namespace", "-n", help="Filter by namespace"),
+    author: str = typer.Option(None, "--author", help="Filter by author"),
+):
+    """List durable batch run records."""
+    response = globals.controller_client().list_runs(namespace=namespace, author=author)
+    run_items = response.get("runs", [])
+    if not run_items:
+        console.print("No runs found")
+        return
+
+    table = Table(title="Kubetorch Runs")
+    table.add_column("RUN ID")
+    table.add_column("STATUS")
+    table.add_column("CREATED")
+    table.add_column("AUTHOR")
+    table.add_column("INTENT")
+    table.add_column("COMMAND")
+    for run in run_items:
+        table.add_row(
+            run.get("run_id", ""),
+            run.get("status", ""),
+            run.get("created_at", "") or "",
+            run.get("author", "") or "",
+            run.get("intent", "") or "",
+            " ".join(run.get("command", []) or []),
         )
+    console.print(table)
 
-    python_file = file
-    if not python_file:
-        for arg in cli_cmd.split():
-            if arg.endswith("py") and Path(arg).exists():
-                python_file = arg
-                break
 
-        if not python_file:
-            console.print(
-                f"[red]Could not detect python file with `kt.app` in {cli_cmd}. Pass it in with `--file`.[/red]"
-            )
+@runs_app.command("show")
+def kt_runs_show(run_id: str = typer.Argument(..., help="Run id")):
+    """Show a run record."""
+    run = globals.controller_client().get_run(run_id)
+    console.print_json(data=run)
+
+
+@runs_app.command("logs")
+def kt_runs_logs(run_id: str = typer.Argument(..., help="Run id")):
+    """Show persisted run logs."""
+    console.print(globals.controller_client().get_run_logs(run_id), end="")
+
+
+@runs_app.command("delete")
+def kt_runs_delete(
+    run_id: str = typer.Argument(..., help="Run id"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted"),
+    keep_data: bool = typer.Option(False, "--keep-data", help="Keep run source, logs, and kt:// artifacts"),
+    keep_job: bool = typer.Option(False, "--keep-job", help="Keep the Kubernetes Job"),
+):
+    """Delete a batch run record and its run-scoped data by default."""
+    delete_data = not keep_data
+    delete_job = not keep_job
+
+    if dry_run or not yes:
+        plan = runs.delete_batch_run(
+            run_id,
+            delete_data=delete_data,
+            delete_job=delete_job,
+            dry_run=True,
+        )
+        if plan.get("data_keys"):
+            console.print("Data keys:")
+            for key in plan["data_keys"]:
+                console.print(f"  {key}")
+        else:
+            console.print("Data keys: none")
+        console.print(f"Kubernetes Job: {'delete' if delete_job else 'keep'}")
+
+        if dry_run:
+            return
+
+        if not typer.confirm(f"Delete run {run_id}?"):
             raise typer.Exit(1)
 
-    # Set env vars for construction of app instance
-    os.environ["KT_RUN"] = "1"
-    os.environ["KT_RUN_CMD"] = cli_cmd
-    os.environ["KT_RUN_FILE"] = python_file
-    if name:
-        os.environ["KT_RUN_NAME"] = name
-    if run_async:
-        os.environ["KT_RUN_ASYNC"] = "1"
+    result = runs.delete_batch_run(
+        run_id,
+        delete_data=delete_data,
+        delete_job=delete_job,
+        yes=yes,
+    )
+    console.print(f"[green]Deleted run {result['run_id']}[/green]")
 
-    # Extract the app instance from the python file
-    module_name = Path(python_file).stem
-    python_file_dir = Path(python_file).resolve().parent
 
-    # Add the directory containing the Python file to sys.path to support relative imports
-    if str(python_file_dir) not in sys.path:
-        sys.path.insert(0, str(python_file_dir))
+@runs_note_app.command("add")
+def kt_runs_note_add(
+    run_id: str = typer.Argument(..., help="Run id"),
+    body: str = typer.Argument(..., help="Note text"),
+    author: str = typer.Option(None, "--author", help="Note author"),
+):
+    """Append a note to a run."""
+    globals.controller_client().add_run_note(run_id, body=body, author=author)
+    console.print(f"[green]Added note to {run_id}[/green]")
 
-    spec = importlib.util.spec_from_file_location(module_name, python_file)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
 
-    app_instance = None
-    for _, obj in inspect.getmembers(module):
-        if isinstance(obj, App):
-            app_instance = obj
-            break
-    if not app_instance:
-        console.print(f"[red]Could not find kt.app definition in {python_file} [/red]")
-        raise typer.Exit(1)
-
-    app_instance.deploy()
+@runs_artifact_app.command("add")
+def kt_runs_artifact_add(
+    run_id: str = typer.Argument(..., help="Run id"),
+    name: str = typer.Option(..., "--name", help="Artifact name"),
+    uri: str = typer.Option(..., "--uri", help="Artifact URI or external reference"),
+    kind: str = typer.Option(None, "--kind", help="Artifact kind, e.g. s3, wandb, tensorboard"),
+    metadata: str = typer.Option(None, "--metadata", help="JSON metadata object"),
+    author: str = typer.Option(None, "--author", help="Artifact author"),
+):
+    """Attach a reference-only artifact to a run."""
+    metadata_obj = json.loads(metadata) if metadata else None
+    globals.controller_client().add_run_artifact(
+        run_id,
+        name=name,
+        uri=uri,
+        kind=kind,
+        metadata=metadata_obj,
+        author=author,
+    )
+    console.print(f"[green]Added artifact {name} to {run_id}[/green]")
 
 
 @app.command("apply")
