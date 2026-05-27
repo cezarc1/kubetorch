@@ -1,3 +1,7 @@
+{{- $imagePullSecrets := list -}}
+{{- range .Values.kubetorchConfig.imagePullSecrets }}
+{{- $imagePullSecrets = append $imagePullSecrets .name }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -29,7 +33,7 @@ data:
             # -------------------------------------------------------
             location {{ .Values.kubetorchController.nginx.healthRoute }} {
                 access_log off;
-                return 200 '{"status":"ok","version":"{{ .Chart.Version }}","config":{"log_streaming_enabled":{{ .Values.logStreaming.enabled }},"metrics_enabled":{{ .Values.metrics.enabled }}}}';
+                return 200 '{"status":"ok","version":"{{ .Chart.Version }}","config":{"log_streaming_enabled":{{ .Values.logStreaming.enabled }},"metrics_enabled":{{ .Values.metrics.enabled }},"image_pull_secrets":{{ $imagePullSecrets | toJson }}}}';
                 add_header Content-Type text/plain;
             }
 

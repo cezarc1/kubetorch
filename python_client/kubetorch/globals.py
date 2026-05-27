@@ -884,6 +884,10 @@ class ControllerClient:
         """Get a run record."""
         return self.get(f"/controller/runs/{run_id}")
 
+    def delete_run(self, run_id: str, delete_job: bool = True) -> Dict[str, Any]:
+        """Delete a run record and optionally its Kubernetes Job."""
+        return self.delete(f"/controller/runs/{run_id}", params={"delete_job": delete_job})
+
     def update_run_status(self, run_id: str, status: str, exit_code: Optional[int] = None) -> Dict[str, Any]:
         """Update run lifecycle status."""
         body = {"status": status}

@@ -13,8 +13,14 @@ SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Sync the Kubetorch repo version across release artifacts.")
-    parser.add_argument("version", nargs="?", help="Version to write. Defaults to the current VERSION file.")
+    parser = argparse.ArgumentParser(
+        description="Sync the Kubetorch repo version across release artifacts."
+    )
+    parser.add_argument(
+        "version",
+        nargs="?",
+        help="Version to write. Defaults to the current VERSION file.",
+    )
     return parser.parse_args()
 
 
@@ -26,9 +32,13 @@ def write_version(version: str) -> None:
     VERSION_FILE.write_text(f"{version}\n")
 
 
-def replace_in_file(path: Path, pattern: str, replacement: str, *, count: int = 0) -> None:
+def replace_in_file(
+    path: Path, pattern: str, replacement: str, *, count: int = 0
+) -> None:
     contents = path.read_text()
-    updated, replacements = re.subn(pattern, replacement, contents, count=count, flags=re.MULTILINE)
+    updated, replacements = re.subn(
+        pattern, replacement, contents, count=count, flags=re.MULTILINE
+    )
     if replacements == 0:
         raise RuntimeError(f"Pattern not found in {path}: {pattern}")
     path.write_text(updated)

@@ -89,6 +89,3 @@ DATA_STORE_METADATA_PORT = 8081
 
 # Runhouse
 KUBETORCH_UI_SERVICE_NAME = "kubetorch-ui-service"
-import os
-
-from kubetorch._version import __version__ as KUBETORCH_VERSION

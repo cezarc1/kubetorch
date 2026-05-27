@@ -3,6 +3,7 @@ import re
 import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
+from urllib.parse import urlparse
 
 from kubetorch import globals
 from kubetorch.data_store import DataStoreClient
@@ -40,6 +41,10 @@ def logs_key_for_run(run_id: str) -> str:
     return f"runs/{run_id}/logs/stdout.log"
 
 
+def run_data_prefix_for_run(run_id: str) -> str:
+    return f"runs/{run_id}"
+
+
 def generate_run_id(name: Optional[str] = None) -> str:
     prefix = re.sub(r"[^a-z0-9-]+", "-", (name or "run").lower()).strip("-")
     prefix = prefix or "run"
@@ -50,6 +55,38 @@ def _job_name_for_run(run_id: str) -> str:
     safe = re.sub(r"[^a-z0-9-]+", "-", run_id.lower()).strip("-")
     safe = safe or "run"
     return f"kt-{safe}"[:63].rstrip("-")
+
+
+def _normalize_image_pull_secrets(image_pull_secrets: Optional[list[Any]]) -> Optional[list[str]]:
+    if not image_pull_secrets:
+        return None
+
+    normalized = []
+    for secret in image_pull_secrets:
+        name = secret.get("name") if isinstance(secret, dict) else str(secret)
+        if name and name not in normalized:
+            normalized.append(name)
+    return normalized or None
+
+
+def resolve_image_pull_secrets(image_pull_secrets: Optional[list[str]] = None) -> Optional[list[str]]:
+    explicit = _normalize_image_pull_secrets(image_pull_secrets)
+    if explicit:
+        return explicit
+
+    cluster_config = globals.config.cluster_config or {}
+    return _normalize_image_pull_secrets(
+        cluster_config.get("image_pull_secrets") or cluster_config.get("imagePullSecrets")
+    )
+
+
+def _mark_run_submission_failed(controller, run_id: str) -> None:
+    if not hasattr(controller, "update_run_status"):
+        return
+    try:
+        controller.update_run_status(run_id, "failed")
+    except Exception:
+        pass
 
 
 def build_job_manifest(
@@ -144,6 +181,7 @@ def submit_batch_run(
     run_id = generate_run_id(name)
     source_key = source_key_for_run(run_id)
     logs_key = logs_key_for_run(run_id)
+    resolved_image_pull_secrets = resolve_image_pull_secrets(image_pull_secrets)
 
     data_store = DataStoreClient(namespace=namespace)
     data_store.put(
@@ -163,7 +201,7 @@ def submit_batch_run(
         resources=resources,
         labels=labels,
         annotations=annotations,
-        image_pull_secrets=image_pull_secrets,
+        image_pull_secrets=resolved_image_pull_secrets,
     )
     job_name = manifest["metadata"]["name"]
     run_payload = {
@@ -184,17 +222,82 @@ def submit_batch_run(
 
     controller = controller_client()
     run_record = controller.create_run(run_payload)
-    apply_response = controller.post(
-        "/controller/apply",
-        json={
-            "service_name": job_name,
-            "namespace": namespace,
-            "resource_type": "job",
-            "resource_manifest": manifest,
-        },
-        timeout=None,
-    )
+    try:
+        apply_response = controller.post(
+            "/controller/apply",
+            json={
+                "service_name": job_name,
+                "namespace": namespace,
+                "resource_type": "job",
+                "resource_manifest": manifest,
+            },
+            timeout=None,
+        )
+    except Exception:
+        _mark_run_submission_failed(controller, run_id)
+        raise
+
+    if isinstance(apply_response, dict) and apply_response.get("status") not in (None, "success"):
+        _mark_run_submission_failed(controller, run_id)
     return {"run_id": run_id, "run": run_record, "apply": apply_response, "job_name": job_name}
+
+
+def _artifact_cleanup_key(artifact: Dict[str, Any], run_id: str, namespace: Optional[str]) -> Optional[str]:
+    uri = artifact.get("uri")
+    if not uri:
+        return None
+
+    parsed = urlparse(uri)
+    if parsed.scheme != "kt":
+        return None
+    if namespace and parsed.netloc and parsed.netloc != namespace:
+        return None
+
+    parts = [part for part in parsed.path.strip("/").split("/") if part]
+    if run_id not in parts:
+        return None
+    return "/".join(parts[: parts.index(run_id) + 1])
+
+
+def _run_data_keys(run_record: Dict[str, Any]) -> list[str]:
+    run_id = run_record["run_id"]
+    namespace = run_record.get("namespace")
+    keys = [run_data_prefix_for_run(run_id)]
+    for artifact_ref in run_record.get("artifacts") or []:
+        cleanup_key = _artifact_cleanup_key(artifact_ref, run_id=run_id, namespace=namespace)
+        if cleanup_key and cleanup_key not in keys:
+            keys.append(cleanup_key)
+    return keys
+
+
+def delete_batch_run(
+    run_id: str,
+    delete_data: bool = True,
+    delete_job: bool = True,
+    dry_run: bool = False,
+    yes: bool = False,
+) -> Dict[str, Any]:
+    """Delete a batch run record and, by default, its Job plus run-scoped data."""
+    controller = controller_client()
+    run_record = controller.get_run(run_id)
+    data_keys = _run_data_keys(run_record)
+    result = {
+        "run_id": run_id,
+        "run": run_record,
+        "data_keys": data_keys if delete_data else [],
+        "delete_job": delete_job,
+        "controller": None,
+    }
+    if dry_run:
+        return result
+
+    if delete_data:
+        data_store = DataStoreClient(namespace=run_record.get("namespace"))
+        for key in data_keys:
+            data_store.rm(key, recursive=True)
+
+    result["controller"] = controller.delete_run(run_id, delete_job=delete_job)
+    return result
 
 
 def current_run_id(run_id: Optional[str] = None) -> str:

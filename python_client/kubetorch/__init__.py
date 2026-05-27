@@ -1,4 +1,3 @@
-from ._version import __version__
 from kubetorch.data_store import BroadcastWindow, DataStoreError, get, ls, put, rm  # noqa: F401
 from kubetorch.globals import config, DebugConfig, LoggingConfig, MetricsConfig  # noqa: F401
 from kubetorch.provisioning.utils import KubernetesCredentialsError
@@ -33,6 +32,7 @@ from kubetorch.serving.utils import (  # noqa: F401
 )
 
 from . import distributed, runs
+from ._version import __version__ as __version__
 from .resources import images
 
 # Alias to expose as kt.images

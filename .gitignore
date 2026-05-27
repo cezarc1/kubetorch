@@ -75,6 +75,7 @@ kubeconfig
 *.npz
 *.tgz
 *.lock
+!examples/wetlandbirds_shakedown/uv.lock
 
 # Sphinx documentation
 **/docs/_build/

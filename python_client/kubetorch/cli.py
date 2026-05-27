@@ -1,6 +1,4 @@
 import base64
-import importlib
-import inspect
 import json
 import os
 import shlex
@@ -60,8 +58,7 @@ except ImportError:
 
 import kubetorch.provisioning.constants as provisioning_constants
 
-from kubetorch import runs
-from kubetorch import globals
+from kubetorch import globals, runs
 from kubetorch.config import ENV_MAPPINGS
 from kubetorch.serving.utils import DEFAULT_DEBUG_PORT
 
@@ -1455,6 +1452,48 @@ def kt_runs_show(run_id: str = typer.Argument(..., help="Run id")):
 def kt_runs_logs(run_id: str = typer.Argument(..., help="Run id")):
     """Show persisted run logs."""
     console.print(globals.controller_client().get_run_logs(run_id), end="")
+
+
+@runs_app.command("delete")
+def kt_runs_delete(
+    run_id: str = typer.Argument(..., help="Run id"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted"),
+    keep_data: bool = typer.Option(False, "--keep-data", help="Keep run source, logs, and kt:// artifacts"),
+    keep_job: bool = typer.Option(False, "--keep-job", help="Keep the Kubernetes Job"),
+):
+    """Delete a batch run record and its run-scoped data by default."""
+    delete_data = not keep_data
+    delete_job = not keep_job
+
+    if dry_run or not yes:
+        plan = runs.delete_batch_run(
+            run_id,
+            delete_data=delete_data,
+            delete_job=delete_job,
+            dry_run=True,
+        )
+        if plan.get("data_keys"):
+            console.print("Data keys:")
+            for key in plan["data_keys"]:
+                console.print(f"  {key}")
+        else:
+            console.print("Data keys: none")
+        console.print(f"Kubernetes Job: {'delete' if delete_job else 'keep'}")
+
+        if dry_run:
+            return
+
+        if not typer.confirm(f"Delete run {run_id}?"):
+            raise typer.Exit(1)
+
+    result = runs.delete_batch_run(
+        run_id,
+        delete_data=delete_data,
+        delete_job=delete_job,
+        yes=yes,
+    )
+    console.print(f"[green]Deleted run {result['run_id']}[/green]")
 
 
 @runs_note_app.command("add")

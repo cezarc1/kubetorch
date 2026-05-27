@@ -348,6 +348,15 @@ class RunListResponse(BaseModel):
     runs: List[RunResponse]
 
 
+class RunDeleteResponse(BaseModel):
+    run_id: str
+    deleted_run: bool
+    deleted_notes: int
+    deleted_artifacts: int
+    deleted_job: bool
+    job_name: Optional[str] = None
+
+
 class RunLogsUpdateResponse(BaseModel):
     run_id: str
     logs_bytes: int

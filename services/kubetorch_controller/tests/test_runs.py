@@ -88,7 +88,9 @@ def test_run_notes_artifacts_status_and_logs_are_attached():
     assert artifact.status_code == 200, artifact.text
     assert artifact.json()["uri"] == "wandb://entity/project/run-id"
 
-    logs = client.put("/controller/runs/run-test-2/logs", json={"logs": "step=1 loss=0.42\n"})
+    logs = client.put(
+        "/controller/runs/run-test-2/logs", json={"logs": "step=1 loss=0.42\n"}
+    )
     assert logs.status_code == 200, logs.text
     assert logs.json()["logs_bytes"] == len("step=1 loss=0.42\n")
 
@@ -104,9 +106,88 @@ def test_run_notes_artifacts_status_and_logs_are_attached():
     shown = client.get("/controller/runs/run-test-2")
     assert shown.status_code == 200, shown.text
     body = shown.json()
-    assert [note["body"] for note in body["notes"]] == ["loss dropped but eval regressed"]
+    assert [note["body"] for note in body["notes"]] == [
+        "loss dropped but eval regressed"
+    ]
     assert [artifact["name"] for artifact in body["artifacts"]] == ["wandb-run"]
 
     log_response = client.get("/controller/runs/run-test-2/logs")
     assert log_response.status_code == 200, log_response.text
     assert log_response.text == "step=1 loss=0.42\n"
+
+
+def test_get_and_list_refresh_run_status_from_kubernetes(monkeypatch):
+    client = _client()
+    _create_run(client, run_id="run-test-3")
+
+    import runs
+
+    refresh_calls = []
+
+    def fake_refresh(db, run):
+        refresh_calls.append(run.run_id)
+        run.status = "failed"
+        run.logs = "ImagePullBackOff: failed to pull image\n"
+
+    monkeypatch.setattr(runs, "_refresh_run_from_kubernetes", fake_refresh)
+
+    shown = client.get("/controller/runs/run-test-3")
+    assert shown.status_code == 200, shown.text
+    assert shown.json()["status"] == "failed"
+
+    listed = client.get("/controller/runs", params={"namespace": "kubetorch"})
+    assert listed.status_code == 200, listed.text
+    assert listed.json()["runs"][0]["status"] == "failed"
+    assert refresh_calls == ["run-test-3", "run-test-3"]
+
+
+def test_delete_run_removes_record_notes_artifacts_and_job(monkeypatch):
+    client = _client()
+    _create_run(client, run_id="run-test-4")
+
+    client.post(
+        "/controller/runs/run-test-4/notes",
+        json={"author": "agent", "body": "cleanup this"},
+    )
+    client.post(
+        "/controller/runs/run-test-4/artifacts",
+        json={
+            "name": "metrics",
+            "kind": "json",
+            "uri": "kt://kubetorch/experiments/run-test-4/metrics.json",
+        },
+    )
+
+    import runs
+
+    delete_calls = []
+
+    def fake_delete_job(namespace, job_name):
+        delete_calls.append((namespace, job_name))
+        return True
+
+    monkeypatch.setattr(runs, "_delete_run_job", fake_delete_job)
+
+    response = client.delete("/controller/runs/run-test-4")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        "run_id": "run-test-4",
+        "deleted_run": True,
+        "deleted_notes": 1,
+        "deleted_artifacts": 1,
+        "deleted_job": True,
+        "job_name": "kt-run-test-4",
+    }
+    assert delete_calls == [("kubetorch", "kt-run-test-4")]
+
+    missing = client.get("/controller/runs/run-test-4")
+    assert missing.status_code == 404
+
+
+def test_delete_missing_run_returns_404():
+    client = _client()
+
+    response = client.delete("/controller/runs/not-here")
+
+    assert response.status_code == 404

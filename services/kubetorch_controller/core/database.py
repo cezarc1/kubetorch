@@ -145,10 +145,14 @@ class Run(Base):
     job_name = Column(String, nullable=True)
     labels = Column(Text, nullable=True)
     annotations = Column(Text, nullable=True)
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(
+        DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
-    updated_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
 
     def to_dict(self, notes=None, artifacts=None) -> Dict[str, Any]:
         return {
@@ -170,10 +174,14 @@ class Run(Base):
             "annotations": json.loads(self.annotations) if self.annotations else {},
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "notes": [note.to_dict() for note in notes] if notes is not None else [],
-            "artifacts": [artifact.to_dict() for artifact in artifacts] if artifacts is not None else [],
+            "artifacts": [artifact.to_dict() for artifact in artifacts]
+            if artifacts is not None
+            else [],
         }
 
 
@@ -186,7 +194,9 @@ class RunNote(Base):
     run_id = Column(String, nullable=False, index=True)
     author = Column(String, nullable=True)
     body = Column(Text, nullable=False)
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(
+        DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -210,7 +220,9 @@ class RunArtifactRef(Base):
     uri = Column(Text, nullable=False)
     artifact_metadata = Column(Text, nullable=True)
     author = Column(String, nullable=True)
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(
+        DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -219,7 +231,9 @@ class RunArtifactRef(Base):
             "name": self.name,
             "kind": self.kind,
             "uri": self.uri,
-            "metadata": json.loads(self.artifact_metadata) if self.artifact_metadata else {},
+            "metadata": json.loads(self.artifact_metadata)
+            if self.artifact_metadata
+            else {},
             "author": self.author,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

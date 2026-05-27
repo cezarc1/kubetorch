@@ -15,7 +15,9 @@ def _sync_workdir(workdir_key: Optional[str], namespace: str, workdir: Path):
     kt_get(key=workdir_key, dest=workdir, contents=True, namespace=namespace)
 
 
-def run_wrapped_command(command: list[str], env: Optional[Dict[str, str]] = None, workdir: Optional[Path] = None) -> int:
+def run_wrapped_command(
+    command: list[str], env: Optional[Dict[str, str]] = None, workdir: Optional[Path] = None
+) -> int:
     """Run a batch command inside a run-scoped workdir and report status/logs."""
     merged_env = dict(os.environ)
     if env:
