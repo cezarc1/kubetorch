@@ -75,6 +75,7 @@ class Module:
         self._http_client = None
         self._get_if_exists = True
         self._reload_prefixes = None
+        self._prefix_username = None
         self._serialization = "json"  # Default serialization format
         self._async = False
         self._remote_root_path = None
@@ -130,6 +131,22 @@ class Module:
             raise ValueError("`reload_prefixes` must be a string or a list.")
 
     @property
+    def prefix_username(self):
+        """Whether to prepend the configured username to this module's service name.
+
+        If ``None`` (default), defers to the global ``config.prefix_username`` (which defaults
+        to ``True``). Set to ``False`` to deploy under the bare name with no username prefix.
+        """
+        return self._prefix_username
+
+    @prefix_username.setter
+    def prefix_username(self, value: Union[bool, None]):
+        if value is not None and not isinstance(value, bool):
+            raise ValueError("`prefix_username` must be a boolean or None.")
+        self._prefix_username = value
+        self._service_name = None  # invalidate cache so the next access re-resolves
+
+    @property
     def namespace(self):
         """Namespace where the service is deployed."""
         if self.compute is not None:
@@ -144,7 +161,13 @@ class Module:
 
         service_name = self.name
 
-        if config.username and not self.reload_prefixes and not service_name.startswith(config.username + "-"):
+        prefix_username = self._prefix_username if self._prefix_username is not None else config.prefix_username
+        if (
+            config.username
+            and prefix_username
+            and not self.reload_prefixes
+            and not service_name.startswith(config.username + "-")
+        ):
             service_name = f"{config.username}-{service_name}"
 
         self._service_name = clean_and_validate_k8s_name(service_name, allow_full_length=True)
@@ -340,6 +363,7 @@ class Module:
         name: str,
         namespace: str = None,
         reload_prefixes: Union[str, List[str]] = [],
+        prefix_username: bool = None,
     ):
         """Reload an existing callable by its service name."""
         import kubetorch as kt
@@ -349,7 +373,11 @@ class Module:
         namespace = namespace or config.namespace
         if isinstance(reload_prefixes, str):
             reload_prefixes = [reload_prefixes]
-        potential_names = get_names_for_reload_fallbacks(name=name, prefixes=reload_prefixes)
+        if prefix_username is None:
+            prefix_username = config.prefix_username
+        potential_names = get_names_for_reload_fallbacks(
+            name=name, prefixes=reload_prefixes, prefix_username=prefix_username
+        )
 
         all_services = ServiceManager.discover_services(namespace=namespace)
 
@@ -414,6 +442,7 @@ class Module:
                 raise ValueError(f"Unknown module type: {callable_type}")
 
             reloaded_module.service_name = candidate
+            reloaded_module._prefix_username = prefix_username
             reloaded_module.compute = compute
             return reloaded_module
 
@@ -440,6 +469,7 @@ class Module:
                 name=self.service_name,
                 namespace=namespace,
                 reload_prefixes=reload_prefixes,
+                prefix_username=self._prefix_username,
             )
 
             # Update settable attributes with reloaded module values
@@ -490,6 +520,7 @@ class Module:
         stream_logs: Union[bool, None] = None,
         get_if_exists: bool = False,
         reload_prefixes: Union[str, List[str]] = [],
+        prefix_username: bool = None,
         dryrun: bool = False,
     ) -> ModuleT:
         """
@@ -509,6 +540,8 @@ class Module:
             reload_prefixes (Union[str, List[str]], optional): A list of prefixes to use when reloading the function
                 (e.g., ["qa", "prod", "git-branch-name"]). If not provided, will use the current username,
                 git branch, and prod.
+            prefix_username (bool, optional): Whether to prepend the configured username to the
+                service name. If None (default), uses the per-module / global config setting.
             dryrun (bool, optional): Whether to setup and return the object as a dryrun (``True``),
                 or to actually launch the compute and service (``False``).
         Returns:
@@ -526,6 +559,8 @@ class Module:
                 stream_logs=True
             )
         """
+        if prefix_username is not None:
+            self.prefix_username = prefix_username
         if not has_k8s_credentials():
             raise KubernetesCredentialsError(
                 "Kubernetes credentials not found. Please ensure you are running in a Kubernetes cluster or have a valid kubeconfig file."
@@ -578,6 +613,7 @@ class Module:
         stream_logs: Union[bool, None] = None,
         get_if_exists: bool = False,
         reload_prefixes: Union[str, List[str]] = [],
+        prefix_username: bool = None,
         dryrun: bool = False,
     ) -> ModuleT:
         """
@@ -597,6 +633,8 @@ class Module:
             reload_prefixes (Union[str, List[str]], optional): A list of prefixes to use when reloading the function
                 (e.g., ["qa", "prod", "git-branch-name"]). If not provided, will use the current username,
                 git branch, and prod.
+            prefix_username (bool, optional): Whether to prepend the configured username to the
+                service name. If None (default), uses the per-module / global config setting.
             dryrun (bool, optional): Whether to setup and return the object as a dryrun (``True``),
                 or to actually launch the compute and service (``False``).
         Returns:
@@ -614,6 +652,8 @@ class Module:
                 stream_logs=True
             )
         """
+        if prefix_username is not None:
+            self.prefix_username = prefix_username
         if compute.service_name and compute.service_name != self.service_name:
             logger.info(f"Renaming service to match compute service name {compute.service_name}")
             self.service_name = compute.service_name
@@ -657,6 +697,7 @@ class Module:
                 self.service_name,
                 namespace=self.namespace,
                 reload_prefixes=reload_prefixes,
+                prefix_username=self._prefix_username,
             )
             if existing_service:
                 if self.compute:
@@ -679,6 +720,7 @@ class Module:
                 self.service_name,
                 namespace=self.namespace,
                 reload_prefixes=reload_prefixes,
+                prefix_username=self._prefix_username,
             )
             if existing_service:
                 if self.compute:
