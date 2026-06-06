@@ -301,6 +301,21 @@ def test_controller_health_config_exposes_image_pull_secrets():
 
 
 @pytest.mark.level("unit")
+def test_controller_chart_persists_sqlite_database():
+    chart_root = Path(__file__).parents[2] / "charts" / "kubetorch"
+    deployment = chart_root / "templates" / "controller" / "deployment.yaml"
+    pvc = chart_root / "templates" / "controller" / "pvc.yaml"
+
+    deployment_yaml = deployment.read_text()
+    pvc_yaml = pvc.read_text()
+
+    assert "mountPath: /data" in deployment_yaml
+    assert "name: controller-data" in deployment_yaml
+    assert "kind: PersistentVolumeClaim" in pvc_yaml
+    assert "kubetorch-controller-data" in pvc_yaml
+
+
+@pytest.mark.level("unit")
 def test_version_mismatch_ignore_env_suppresses_warning(monkeypatch, recwarn):
     from kubetorch import __version__
     from kubetorch.provisioning.utils import check_kubetorch_versions

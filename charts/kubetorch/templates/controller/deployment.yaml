@@ -175,6 +175,11 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 5
             failureThreshold: 3
+          {{- if .Values.kubetorchController.storage.enabled }}
+          volumeMounts:
+            - name: controller-data
+              mountPath: /data
+          {{- end }}
           resources:
             requests:
               cpu: {{ .Values.kubetorchController.resources.cpu.request | quote }}
@@ -193,3 +198,8 @@ spec:
         - name: nginx-config
           configMap:
             name: kubetorch-controller-config
+        {{- if .Values.kubetorchController.storage.enabled }}
+        - name: controller-data
+          persistentVolumeClaim:
+            claimName: kubetorch-controller-data
+        {{- end }}
