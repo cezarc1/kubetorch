@@ -377,6 +377,48 @@ def test_submit_batch_run_creates_run_uploads_source_and_applies_job(monkeypatch
 
 
 @pytest.mark.level("unit")
+def test_cli_batch_run_help_guides_agent_operators():
+    from kubetorch import cli
+
+    run_result = runner.invoke(cli.app, ["run", "--help"], color=False)
+    assert run_result.exit_code == 0, run_result.output
+    assert "snapshots the source directory" in run_result.output
+    assert "Kubernetes Job" in run_result.output
+    assert "--intent" in run_result.output
+    assert "rsync" in run_result.output
+
+    runs_result = runner.invoke(cli.app, ["runs", "--help"], color=False)
+    assert runs_result.exit_code == 0, runs_result.output
+    assert "Inspect, annotate, and clean up" in runs_result.output
+    assert "before launching follow-up runs" in runs_result.output
+
+    note_result = runner.invoke(cli.app, ["runs", "note", "add", "--help"], color=False)
+    assert note_result.exit_code == 0, note_result.output
+    assert "findings" in note_result.output
+
+    artifact_result = runner.invoke(cli.app, ["runs", "artifact", "add", "--help"], color=False)
+    assert artifact_result.exit_code == 0, artifact_result.output
+    assert "result reference" in artifact_result.output
+    assert "wandb" in artifact_result.output
+
+
+@pytest.mark.level("unit")
+def test_batch_runs_docs_page_is_linked_and_agent_oriented():
+    docs_root = Path(__file__).resolve().parents[1] / "kubetorch" / "docs"
+    guide_path = docs_root / "guides" / "batch_runs.rst"
+    index_path = docs_root / "index.rst"
+
+    guide = guide_path.read_text()
+    index = index_path.read_text()
+
+    assert "guides/batch_runs" in index
+    assert "Before submitting" in guide
+    assert "kt runs list" in guide
+    assert "kt runs delete RUN_ID --yes" in guide
+    assert "not a queue or fair-share scheduler" in guide
+
+
+@pytest.mark.level("unit")
 def test_cli_run_submits_batch_run(monkeypatch, tmp_path):
     from kubetorch import cli
 

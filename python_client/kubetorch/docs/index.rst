@@ -1,7 +1,7 @@
-Kubetorch API Reference
+Kubetorch Documentation
 =======================
 
-This document contains only API references.
+This document contains operational guides and API references.
 
 For further information and examples using Kubetorch, please refer to:
 
@@ -14,7 +14,8 @@ For further information and examples using Kubetorch, please refer to:
 
 .. toctree::
    :maxdepth: 1
-   :caption: API Reference
+   :caption: Guides and API Reference
 
+   guides/batch_runs
    api/python
    api/cli

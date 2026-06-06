@@ -75,9 +75,9 @@ from .logger import get_logger
 
 app = typer.Typer(add_completion=False)
 server_app = typer.Typer(help="Kubetorch server commands.")
-runs_app = typer.Typer(help="Inspect and annotate Kubetorch batch runs.")
-runs_note_app = typer.Typer(help="Manage run notes.")
-runs_artifact_app = typer.Typer(help="Manage run artifact references.")
+runs_app = typer.Typer(help="Inspect, annotate, and clean up Kubetorch batch runs before launching follow-up runs.")
+runs_note_app = typer.Typer(help="Manage run findings and result notes.")
+runs_artifact_app = typer.Typer(help="Manage result references for run artifacts.")
 app.add_typer(server_app, name="server")
 app.add_typer(runs_app, name="runs")
 runs_app.add_typer(runs_note_app, name="note")
@@ -1360,10 +1360,23 @@ def kt_port_forward(
 def kt_run(
     ctx: typer.Context,
     name: str = typer.Option(None, "--name", help="Human-readable run id prefix"),
-    intent: str = typer.Option(None, "--intent", help="Short description of what this run explores"),
+    intent: str = typer.Option(
+        None,
+        "--intent",
+        help="Short experiment question or intent; shown in kt runs list/show.",
+    ),
     namespace: str = typer.Option(globals.config.namespace, "--namespace", "-n", help="Kubernetes namespace"),
-    image: str = typer.Option(None, "--image", "-i", help="Container image for the run"),
-    source_dir: Path = typer.Option(Path("."), "--source-dir", help="Directory to snapshot into the run workdir"),
+    image: str = typer.Option(
+        None,
+        "--image",
+        "-i",
+        help="Container image for the run; include Python, Kubetorch, rsync, and workload dependencies.",
+    ),
+    source_dir: Path = typer.Option(
+        Path("."),
+        "--source-dir",
+        help="Directory to snapshot into the Kubetorch data store for this run.",
+    ),
     env: List[str] = typer.Option(None, "--env", "-e", help="Environment variable in KEY=VALUE form"),
     image_pull_secrets: List[str] = typer.Option(
         None,
@@ -1374,6 +1387,11 @@ def kt_run(
 ):
     """
     Submit a batch run as a Kubernetes Job.
+
+    kt run snapshots the source directory into the Kubetorch data store,
+    starts a Kubernetes Job, then syncs the snapshot into the Job workdir.
+    Run images must include Python, the Kubetorch client, rsync, and workload
+    dependencies. Use --intent to record the experiment question.
 
     Examples:
 
@@ -1415,7 +1433,7 @@ def kt_runs_list(
     namespace: str = typer.Option(None, "--namespace", "-n", help="Filter by namespace"),
     author: str = typer.Option(None, "--author", help="Filter by author"),
 ):
-    """List durable batch run records."""
+    """List durable batch run records before launching follow-up runs."""
     response = globals.controller_client().list_runs(namespace=namespace, author=author)
     run_items = response.get("runs", [])
     if not run_items:
@@ -1443,14 +1461,14 @@ def kt_runs_list(
 
 @runs_app.command("show")
 def kt_runs_show(run_id: str = typer.Argument(..., help="Run id")):
-    """Show a run record."""
+    """Show source, env, intent, notes, artifacts, and status for a run."""
     run = globals.controller_client().get_run(run_id)
     console.print_json(data=run)
 
 
 @runs_app.command("logs")
 def kt_runs_logs(run_id: str = typer.Argument(..., help="Run id")):
-    """Show persisted run logs."""
+    """Show persisted stdout/stderr logs for a completed or running run."""
     console.print(globals.controller_client().get_run_logs(run_id), end="")
 
 
@@ -1462,7 +1480,7 @@ def kt_runs_delete(
     keep_data: bool = typer.Option(False, "--keep-data", help="Keep run source, logs, and kt:// artifacts"),
     keep_job: bool = typer.Option(False, "--keep-job", help="Keep the Kubernetes Job"),
 ):
-    """Delete a batch run record and its run-scoped data by default."""
+    """Delete a batch run record, Job, source/log data, and kt:// artifacts by default."""
     delete_data = not keep_data
     delete_job = not keep_job
 
@@ -1502,7 +1520,7 @@ def kt_runs_note_add(
     body: str = typer.Argument(..., help="Note text"),
     author: str = typer.Option(None, "--author", help="Note author"),
 ):
-    """Append a note to a run."""
+    """Append findings, analysis, or result notes to a run."""
     globals.controller_client().add_run_note(run_id, body=body, author=author)
     console.print(f"[green]Added note to {run_id}[/green]")
 
@@ -1516,7 +1534,7 @@ def kt_runs_artifact_add(
     metadata: str = typer.Option(None, "--metadata", help="JSON metadata object"),
     author: str = typer.Option(None, "--author", help="Artifact author"),
 ):
-    """Attach a reference-only artifact to a run."""
+    """Attach a result reference to a run, such as kt://, wandb, metrics, or checkpoints."""
     metadata_obj = json.loads(metadata) if metadata else None
     globals.controller_client().add_run_artifact(
         run_id,
