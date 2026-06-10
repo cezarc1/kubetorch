@@ -1,0 +1,34 @@
+FROM nvcr.io/nvidia/pytorch:26.04-py3
+
+ARG TENSORRT_EDGE_LLM_REF=f9cc74623d95d7acf1addab6026b9d410ba81f52
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    TENSORRT_EDGE_LLM_HOME=/opt/TensorRT-Edge-LLM \
+    PYTHONPATH=/opt/TensorRT-Edge-LLM:${PYTHONPATH}
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        git \
+        git-lfs \
+        rsync && \
+    rm -rf /var/lib/apt/lists/* && \
+    git lfs install --system
+
+WORKDIR /workspace
+
+RUN git clone https://github.com/NVIDIA/TensorRT-Edge-LLM.git "${TENSORRT_EDGE_LLM_HOME}" && \
+    cd "${TENSORRT_EDGE_LLM_HOME}" && \
+    git checkout "${TENSORRT_EDGE_LLM_REF}" && \
+    python -m pip install --upgrade pip && \
+    python -m pip install -r requirements.txt && \
+    python -m pip install ".[tools]"
+
+COPY python_client /tmp/kubetorch/python_client
+COPY examples/qwen3_asr_orin /tmp/kubetorch/examples/qwen3_asr_orin
+
+RUN python -m pip install -e /tmp/kubetorch/python_client[client] && \
+    python -m pip install -e /tmp/kubetorch/examples/qwen3_asr_orin
+
+CMD ["tensorrt-edgellm-export", "--help"]

@@ -85,10 +85,21 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     assert (tmp_path / "bundle/audio/sample-one.wav").read_bytes() == b"first"
     assert (tmp_path / "bundle/audio/sample-two.wav").read_bytes() == b"second"
     assert (tmp_path / "bundle/prompts.txt").read_text() == "sample-one\thello orin\nsample-two\tbonjour orin\n"
+    benchmark_script = tmp_path / "bundle/scripts/qwen3_asr_edgellm_benchmark.py"
+    assert benchmark_script.exists()
+    compile(benchmark_script.read_text(), str(benchmark_script), "exec")
 
     pipeline = json.loads((tmp_path / "bundle/pipeline.json").read_text())
     assert pipeline["quantization"]["format"] == "int8"
     assert pipeline["quantization"]["model_path"] == "/models/Qwen3-ASR-1.7B"
     assert pipeline["quantization"]["qwen_asr_root"] == "/opt/Qwen3-ASR"
-    assert "scripts/01_quantize.sh" in pipeline["stages"][0]["command"]
-    assert "scripts/04_benchmark.sh" in pipeline["stages"][-1]["command"]
+    assert pipeline["quantization"]["tensorrt_edgellm_version"] == "v0.8.0"
+    assert "tensorrt-edgellm-quantize llm" in pipeline["stages"][0]["command"]
+    assert "--quantization int8_sq" in pipeline["stages"][0]["command"]
+    assert "tensorrt-edgellm-export" in pipeline["stages"][1]["command"]
+    assert "llm_build" in pipeline["stages"][2]["command"]
+    assert "audio_build" in pipeline["stages"][3]["command"]
+    assert "tensorrt-edgellm-preprocess-audio" in pipeline["stages"][4]["command"]
+    assert "scripts/qwen3_asr_edgellm_benchmark.py" in pipeline["stages"][-1]["command"]
+    assert "--manifest" in pipeline["stages"][-1]["command"]
+    assert "llm_inference" in pipeline["stages"][-1]["command"]
