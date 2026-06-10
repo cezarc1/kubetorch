@@ -195,11 +195,19 @@ Observed full-slice INT8 result from the GitOps Job
 - aggregate RTF: `1.69`
 - mean per-sample RTF: `2.43`
 - errors: `0`
-- rescored mean WER: `13.16%`
+- rescored mean WER: `12.81%`
 
 The full-slice benchmark launches `llm_inference` once per sample, so the RTF
 includes repeated process/model startup. A persistent Edge-LLM server or batched
 driver is the next optimization target before judging steady-state throughput.
+
+Recompute the saved-run sanity WER with the package helper:
+
+```sh
+qwen3-asr-orin rescore-edgellm-results \
+  --samples results/qwen3-asr-orin/jetson-hosttrt-run/results-int8/samples.jsonl \
+  --output-dir results/qwen3-asr-orin/jetson-hosttrt-run/results-int8-rescored
+```
 
 The host-TensorRT Edge-LLM path is packaged by the bundle command below.
 

@@ -5,6 +5,7 @@ from pathlib import Path
 
 from qwen3_asr_orin.benchmark import run_benchmark
 from qwen3_asr_orin.datasets import prepare_public_manifest
+from qwen3_asr_orin.edgellm_results import DEFAULT_LANGUAGE_PREFIX_REGEX, rescore_samples_file
 from qwen3_asr_orin.quantize import (
     QuantizationSpec,
     export_trt_edgellm_bundle,
@@ -57,6 +58,11 @@ def main(argv: list[str] | None = None) -> None:
     trt_bundle.add_argument("--runtime-output-dir")
     trt_bundle.add_argument("--copy-audio", action="store_true")
 
+    rescore = subparsers.add_parser("rescore-edgellm-results", help="Recompute WER for saved Edge-LLM samples")
+    rescore.add_argument("--samples", type=Path, required=True)
+    rescore.add_argument("--output-dir", type=Path, required=True)
+    rescore.add_argument("--strip-prefix-regex", default=DEFAULT_LANGUAGE_PREFIX_REGEX)
+
     args = parser.parse_args(argv)
 
     if args.command == "prepare-manifest":
@@ -107,6 +113,13 @@ def main(argv: list[str] | None = None) -> None:
             runtime_output_dir=args.runtime_output_dir,
         )
         print(bundle.pipeline_path)
+    elif args.command == "rescore-edgellm-results":
+        rescore_samples_file(
+            samples_path=args.samples,
+            output_dir=args.output_dir,
+            strip_prefix_regex=args.strip_prefix_regex,
+        )
+        print(args.output_dir / "summary.json")
 
 
 if __name__ == "__main__":

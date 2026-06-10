@@ -55,3 +55,35 @@ def test_cli_exports_trt_edgellm_bundle(tmp_path: Path, capsys):
     assert pipeline["quantization"]["runtime_output_dir"] == "/work/bundle"
     assert pipeline["runner"]["usage"].startswith("ALLOW_TEMP_SWAP=1 /work/bundle/")
     assert str(tmp_path / "bundle/pipeline.json") in capsys.readouterr().out
+
+
+def test_cli_rescores_edgellm_results(tmp_path: Path, capsys):
+    samples_path = tmp_path / "samples.jsonl"
+    samples_path.write_text(
+        json.dumps(
+            {
+                "sample_id": "sample",
+                "reference": "when you call someone",
+                "hypothesis": "language EnglishWhen you call someone.",
+                "duration_seconds": 4.0,
+                "latency_seconds": 6.0,
+                "returncode": 0,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    main(
+        [
+            "rescore-edgellm-results",
+            "--samples",
+            str(samples_path),
+            "--output-dir",
+            str(tmp_path / "rescored"),
+        ]
+    )
+
+    summary = json.loads((tmp_path / "rescored" / "summary.json").read_text())
+    assert summary["mean_wer"] == 0.0
+    assert str(tmp_path / "rescored" / "summary.json") in capsys.readouterr().out
