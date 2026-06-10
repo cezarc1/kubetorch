@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 from dataclasses import asdict, dataclass
+from itertools import islice
 from pathlib import Path
 from typing import Iterable
 
@@ -51,13 +52,24 @@ def load_manifest(manifest_path: Path) -> list[AudioExample]:
 
 
 def _copy_encoded_audio(audio: object, audio_dir: Path, stem: str, soundfile_module: object) -> tuple[Path, float]:
-    if not isinstance(audio, dict) or not audio.get("path"):
-        raise ValueError("Expected a decoded-disabled datasets audio row with a local path")
+    if not isinstance(audio, dict):
+        raise ValueError("Expected a decoded-disabled datasets audio row")
 
-    source_path = Path(str(audio["path"]))
-    suffix = source_path.suffix or ".wav"
+    source = audio.get("path")
+    source_path = Path(str(source)) if source else None
+    encoded_bytes = audio.get("bytes")
+    if source_path is None and not isinstance(encoded_bytes, bytes):
+        raise ValueError("Expected a decoded-disabled datasets audio row with a local path or encoded bytes")
+
+    suffix = source_path.suffix if source_path is not None else ".wav"
+    suffix = suffix or ".wav"
     audio_path = audio_dir / f"{stem}{suffix}"
-    shutil.copy2(source_path, audio_path)
+    if source_path is not None and source_path.exists():
+        shutil.copy2(source_path, audio_path)
+    elif isinstance(encoded_bytes, bytes):
+        audio_path.write_bytes(encoded_bytes)
+    else:
+        raise FileNotFoundError(source_path)
     duration_seconds = float(soundfile_module.info(audio_path).duration)
     return audio_path, duration_seconds
 
@@ -80,9 +92,9 @@ def prepare_public_manifest(
     audio_dir.mkdir(parents=True, exist_ok=True)
     examples: list[AudioExample] = []
 
-    librispeech = load_dataset(LIBRISPEECH_DATASET_ID, "clean", split=f"validation[:{librispeech_count}]")
+    librispeech = load_dataset(LIBRISPEECH_DATASET_ID, "clean", split="validation", streaming=True)
     librispeech = librispeech.cast_column("audio", Audio(decode=False))
-    for index, row in enumerate(librispeech):
+    for index, row in enumerate(islice(librispeech, librispeech_count)):
         example_id = f"librispeech-dev-clean-{index:04d}"
         audio_path, duration_seconds = _copy_encoded_audio(row["audio"], audio_dir, example_id, sf)
         examples.append(
@@ -98,9 +110,9 @@ def prepare_public_manifest(
         )
 
     for language in fleurs_languages:
-        fleurs = load_dataset(FLEURS_DATASET_ID, language, split=f"validation[:{fleurs_count_per_language}]")
+        fleurs = load_dataset(FLEURS_DATASET_ID, language, split="validation", streaming=True)
         fleurs = fleurs.cast_column("audio", Audio(decode=False))
-        for index, row in enumerate(fleurs):
+        for index, row in enumerate(islice(fleurs, fleurs_count_per_language)):
             example_id = f"fleurs-{language}-{index:04d}"
             audio_path, duration_seconds = _copy_encoded_audio(row["audio"], audio_dir, example_id, sf)
             examples.append(

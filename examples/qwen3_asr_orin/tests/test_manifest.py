@@ -84,10 +84,13 @@ def test_prepare_public_manifest_copies_audio_paths_without_decoding(monkeypatch
             assert feature.decode is False
             return self
 
-    def fake_load_dataset(dataset_id, config, split):
+    calls = []
+
+    def fake_load_dataset(dataset_id, config, split, streaming):
+        calls.append((dataset_id, config, split, streaming))
         if dataset_id == LIBRISPEECH_DATASET_ID:
             return FakeDataset([{"audio": {"path": str(source_audio)}, "text": "hello"}])
-        return FakeDataset([{"audio": {"path": str(source_audio)}, "transcription": "hola"}])
+        return FakeDataset([{"audio": {"path": "streamed.flac", "bytes": b"audio"}, "transcription": "hola"}])
 
     class FakeAudio:
         def __init__(self, decode):
@@ -106,9 +109,14 @@ def test_prepare_public_manifest_copies_audio_paths_without_decoding(monkeypatch
     )
 
     rows = load_manifest(manifest_path)
+    assert calls == [
+        (LIBRISPEECH_DATASET_ID, "clean", "validation", True),
+        (FLEURS_DATASET_ID, "es_419", "validation", True),
+    ]
     assert [row.transcript for row in rows] == ["hola", "hello"]
     for row in rows:
         copied = Path(row.audio_path)
         assert copied.exists()
         assert copied.read_bytes() == b"audio"
         assert row.duration_seconds == 1.5
+    assert rows[0].audio_path.endswith(".flac")
