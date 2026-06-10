@@ -447,7 +447,11 @@ run_stage() {
   local command
   command="$(stage_command "$name")"
   echo "== ${name} ==" | tee "${LOG_DIR}/${name}.status"
-  /usr/bin/time -v bash -lc "${command}" > "${LOG_DIR}/${name}.log" 2>&1
+  if [[ -x /usr/bin/time ]]; then
+    /usr/bin/time -v bash -lc "${command}" > "${LOG_DIR}/${name}.log" 2>&1
+  else
+    bash -lc "${command}" > "${LOG_DIR}/${name}.log" 2>&1
+  fi
 }
 
 run_stage build-llm-engine

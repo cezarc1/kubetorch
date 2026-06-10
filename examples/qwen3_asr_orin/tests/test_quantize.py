@@ -97,6 +97,7 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     hosttrt_runner_text = hosttrt_runner.read_text()
     assert "ALLOW_TEMP_SWAP=1" in hosttrt_runner_text
     assert "swap_slack_kib" in hosttrt_runner_text
+    assert "[[ -x /usr/bin/time ]]" in hosttrt_runner_text
 
     pipeline = json.loads((tmp_path / "bundle/pipeline.json").read_text())
     assert pipeline["quantization"]["format"] == "int8"
