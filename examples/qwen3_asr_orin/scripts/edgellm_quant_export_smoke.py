@@ -240,7 +240,16 @@ def upload_result(output_dir: Path) -> None:
         import kubetorch as kt
 
         key = f"runs/{run_id}/artifacts/qwen3-asr-edgellm-smoke"
-        kt.put(key=key, src=output_dir, namespace=namespace, force=True, filter_options="--include=*.onnx")
+        artifact_filter = (
+            "--include='*/' "
+            "--include='*.json' "
+            "--include='*.log' "
+            "--include='*.onnx' "
+            "--include='*.onnx.data' "
+            "--include='*.safetensors' "
+            "--exclude='*'"
+        )
+        kt.put(key=key, src=output_dir, namespace=namespace, force=True, filter_options=artifact_filter)
         kt.artifact(
             "qwen3-asr-edgellm-smoke",
             uri=f"kt://{namespace}/{key}",
