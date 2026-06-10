@@ -11,7 +11,7 @@ from qwen3_asr_orin.datasets import AudioExample, load_manifest, write_manifest
 TENSORRT_EDGE_LLM_VERSION = "v0.8.0"
 TENSORRT_EDGE_LLM_COMMIT = "f9cc74623d95d7acf1addab6026b9d410ba81f52"
 JETSON_NODE_NAME = "jetson-orin-nano-01"
-JETSON_HOST_CUDA_PATH = "/usr/local/cuda-13.2"
+JETSON_HOST_CUDA_PATH = "/usr/local/cuda"
 JETSON_HOST_USR_PATH = "/usr"
 JETSON_TEMP_SWAP_GIB = 16
 JETSON_TENSORRT_VERSION = "10.16.2.10"
@@ -423,9 +423,10 @@ trap cleanup_swap EXIT
 
 current_swap_kib="$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)"
 required_swap_kib="$((TEMP_SWAP_GIB * 1024 * 1024))"
-if (( current_swap_kib < required_swap_kib )); then
+swap_slack_kib="$((64 * 1024))"
+if (( current_swap_kib + swap_slack_kib < required_swap_kib )); then
   if [[ "${ALLOW_TEMP_SWAP:-0}" != "1" ]]; then
-    echo "SwapTotal is ${current_swap_kib} KiB; need about ${required_swap_kib} KiB. Re-run with ALLOW_TEMP_SWAP=1 to create temporary swap at ${SWAPFILE}." >&2
+    echo "SwapTotal is ${current_swap_kib} KiB; need about ${required_swap_kib} KiB plus ${swap_slack_kib} KiB slack. Re-run with ALLOW_TEMP_SWAP=1 to create temporary swap at ${SWAPFILE}." >&2
     exit 2
   fi
   run_privileged fallocate -l "${TEMP_SWAP_GIB}G" "${SWAPFILE}"

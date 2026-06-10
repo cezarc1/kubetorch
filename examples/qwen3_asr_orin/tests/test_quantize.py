@@ -94,7 +94,9 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     assert benchmark_script.exists()
     compile(benchmark_script.read_text(), str(benchmark_script), "exec")
     assert hosttrt_runner.exists()
-    assert "ALLOW_TEMP_SWAP=1" in hosttrt_runner.read_text()
+    hosttrt_runner_text = hosttrt_runner.read_text()
+    assert "ALLOW_TEMP_SWAP=1" in hosttrt_runner_text
+    assert "swap_slack_kib" in hosttrt_runner_text
 
     pipeline = json.loads((tmp_path / "bundle/pipeline.json").read_text())
     assert pipeline["quantization"]["format"] == "int8"
@@ -104,7 +106,7 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     assert pipeline["quantization"]["local_output_dir"] == str(tmp_path / "bundle")
     assert pipeline["quantization"]["runtime_output_dir"] == "/work/bundle"
     assert pipeline["runtime_requirements"]["benchmark_node"] == "jetson-orin-nano-01"
-    assert pipeline["runtime_requirements"]["cuda_home"] == "/usr/local/cuda-13.2"
+    assert pipeline["runtime_requirements"]["cuda_home"] == "/usr/local/cuda"
     assert pipeline["runtime_requirements"]["tensorrt_version"] == "10.16.2.10"
     assert pipeline["runtime_requirements"]["temp_swap_gib"] == 16
     assert pipeline["runtime_requirements"]["kubernetes"]["runtime_class_name"] is None
