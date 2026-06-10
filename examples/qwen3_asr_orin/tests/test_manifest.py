@@ -1,7 +1,16 @@
 import json
+import sys
+import types
 from pathlib import Path
 
-from qwen3_asr_orin.datasets import AudioExample, FLEURS_DATASET_ID, LIBRISPEECH_DATASET_ID, load_manifest, write_manifest
+from qwen3_asr_orin.datasets import (
+    AudioExample,
+    FLEURS_DATASET_ID,
+    LIBRISPEECH_DATASET_ID,
+    load_manifest,
+    prepare_public_manifest,
+    write_manifest,
+)
 
 
 def test_dataset_ids_are_namespaced_for_current_hugging_face_hub():
@@ -63,3 +72,43 @@ def test_audio_example_rejects_non_positive_duration():
         assert "duration_seconds" in str(exc)
     else:
         raise AssertionError("AudioExample accepted a zero-duration sample")
+
+
+def test_prepare_public_manifest_copies_audio_paths_without_decoding(monkeypatch, tmp_path: Path):
+    source_audio = tmp_path / "source.wav"
+    source_audio.write_bytes(b"audio")
+
+    class FakeDataset(list):
+        def cast_column(self, name, feature):
+            assert name == "audio"
+            assert feature.decode is False
+            return self
+
+    def fake_load_dataset(dataset_id, config, split):
+        if dataset_id == LIBRISPEECH_DATASET_ID:
+            return FakeDataset([{"audio": {"path": str(source_audio)}, "text": "hello"}])
+        return FakeDataset([{"audio": {"path": str(source_audio)}, "transcription": "hola"}])
+
+    class FakeAudio:
+        def __init__(self, decode):
+            self.decode = decode
+
+    fake_datasets = types.SimpleNamespace(load_dataset=fake_load_dataset, Audio=FakeAudio)
+    fake_soundfile = types.SimpleNamespace(info=lambda path: types.SimpleNamespace(duration=1.5))
+    monkeypatch.setitem(sys.modules, "datasets", fake_datasets)
+    monkeypatch.setitem(sys.modules, "soundfile", fake_soundfile)
+
+    manifest_path = prepare_public_manifest(
+        output_dir=tmp_path / "out",
+        librispeech_count=1,
+        fleurs_count_per_language=1,
+        fleurs_languages=("es_419",),
+    )
+
+    rows = load_manifest(manifest_path)
+    assert [row.transcript for row in rows] == ["hola", "hello"]
+    for row in rows:
+        copied = Path(row.audio_path)
+        assert copied.exists()
+        assert copied.read_bytes() == b"audio"
+        assert row.duration_seconds == 1.5

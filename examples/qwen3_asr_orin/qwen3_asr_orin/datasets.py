@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
@@ -49,6 +50,18 @@ def load_manifest(manifest_path: Path) -> list[AudioExample]:
     return examples
 
 
+def _copy_encoded_audio(audio: object, audio_dir: Path, stem: str, soundfile_module: object) -> tuple[Path, float]:
+    if not isinstance(audio, dict) or not audio.get("path"):
+        raise ValueError("Expected a decoded-disabled datasets audio row with a local path")
+
+    source_path = Path(str(audio["path"]))
+    suffix = source_path.suffix or ".wav"
+    audio_path = audio_dir / f"{stem}{suffix}"
+    shutil.copy2(source_path, audio_path)
+    duration_seconds = float(soundfile_module.info(audio_path).duration)
+    return audio_path, duration_seconds
+
+
 def prepare_public_manifest(
     output_dir: Path,
     librispeech_count: int = 8,
@@ -60,7 +73,7 @@ def prepare_public_manifest(
     This function imports heavy dataset/audio dependencies lazily so unit tests
     and summary analysis stay fast.
     """
-    from datasets import load_dataset
+    from datasets import Audio, load_dataset
     import soundfile as sf
 
     audio_dir = output_dir / "audio"
@@ -68,37 +81,37 @@ def prepare_public_manifest(
     examples: list[AudioExample] = []
 
     librispeech = load_dataset(LIBRISPEECH_DATASET_ID, "clean", split=f"validation[:{librispeech_count}]")
+    librispeech = librispeech.cast_column("audio", Audio(decode=False))
     for index, row in enumerate(librispeech):
-        audio = row["audio"]
-        audio_path = audio_dir / f"librispeech-dev-clean-{index:04d}.wav"
-        sf.write(audio_path, audio["array"], audio["sampling_rate"])
+        example_id = f"librispeech-dev-clean-{index:04d}"
+        audio_path, duration_seconds = _copy_encoded_audio(row["audio"], audio_dir, example_id, sf)
         examples.append(
             AudioExample(
-                id=f"librispeech-dev-clean-{index:04d}",
+                id=example_id,
                 dataset="librispeech",
                 language="en",
                 split="dev-clean",
                 audio_path=str(audio_path),
                 transcript=row["text"],
-                duration_seconds=len(audio["array"]) / float(audio["sampling_rate"]),
+                duration_seconds=duration_seconds,
             )
         )
 
     for language in fleurs_languages:
         fleurs = load_dataset(FLEURS_DATASET_ID, language, split=f"validation[:{fleurs_count_per_language}]")
+        fleurs = fleurs.cast_column("audio", Audio(decode=False))
         for index, row in enumerate(fleurs):
-            audio = row["audio"]
-            audio_path = audio_dir / f"fleurs-{language}-{index:04d}.wav"
-            sf.write(audio_path, audio["array"], audio["sampling_rate"])
+            example_id = f"fleurs-{language}-{index:04d}"
+            audio_path, duration_seconds = _copy_encoded_audio(row["audio"], audio_dir, example_id, sf)
             examples.append(
                 AudioExample(
-                    id=f"fleurs-{language}-{index:04d}",
+                    id=example_id,
                     dataset="fleurs",
                     language=language,
                     split="validation",
                     audio_path=str(audio_path),
                     transcript=row["transcription"],
-                    duration_seconds=len(audio["array"]) / float(audio["sampling_rate"]),
+                    duration_seconds=duration_seconds,
                 )
             )
 
