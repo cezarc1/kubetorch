@@ -117,7 +117,10 @@ Observed on `jetson-orin-nano-01`:
 
 - vLLM `0.22.1` installs from an arm64 wheel and contains `Qwen3ASRConfig`, but
   the server did not reach readiness on the 8 GB Orin Nano in the tested FP16
-  configurations.
+  configurations. A recovered-node retry with `gpu_memory_utilization=0.30`,
+  `max_model_len=1024`, `max_num_seqs=1`, and eager mode reached
+  `Qwen3ASRForConditionalGeneration` engine startup with `dtype=torch.bfloat16`,
+  then OOMKilled at the `7Gi` memory limit during model load.
 - SGLang `0.5.12.post1` installs from arm64 CUDA 13 wheels. Pin
   `kernels==0.14.1` and `kernels-data==0.14.1`; `kernels==0.15.2` failed during
   `import sglang` with `ValueError: Either a revision or a version must be specified`.
@@ -159,6 +162,12 @@ mid-startup, and the Jetson kubelet then reported
 `KubeletNotReady: PLEG is not healthy`. Do not use the stock SGLang Deployment
 as the main benchmark path on this Nano without a prebuilt image, a recovery
 plan, and manual isolation from Flux reconciliation.
+
+After reboot and cleanup, the same SGLang Deployment failed more cleanly:
+the node stayed Ready, but the container OOMKilled at the `7Gi` limit before
+readiness. Logs reached weight loading with `avail mem=3.77 GB`, selected
+`triton_attn` for multimodal attention, and then the rank-0 scheduler died with
+exit code `-9`.
 
 The current INT8 path is a TensorRT-Edge-LLM-style artifact:
 
