@@ -388,9 +388,12 @@ fi
 CUDA_HOME="${CUDA_HOME:-$(json_get runtime_requirements.cuda_home)}"
 HOST_USR_PATH="${HOST_USR_PATH:-$(json_get runtime_requirements.host_usr_path)}"
 TEMP_SWAP_GIB="$(json_get runtime_requirements.temp_swap_gib)"
+TRT_EDGELLM_ROOT="${TRT_EDGELLM_ROOT:-$(pwd)}"
 export CUDA_HOME
+export TRT_EDGELLM_ROOT
+export EDGELLM_PLUGIN_PATH="${EDGELLM_PLUGIN_PATH:-${TRT_EDGELLM_ROOT}/build/libNvInfer_edgellm_plugin.so}"
 export PATH="${CUDA_HOME}/bin:${PATH}"
-export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${HOST_USR_PATH}/lib/aarch64-linux-gnu/nvidia:${HOST_USR_PATH}/lib/aarch64-linux-gnu/tegra:${HOST_USR_PATH}/lib/aarch64-linux-gnu:${LD_LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="${TRT_EDGELLM_ROOT}/build:${CUDA_HOME}/lib64:${HOST_USR_PATH}/lib/aarch64-linux-gnu/nvidia:${HOST_USR_PATH}/lib/aarch64-linux-gnu/tegra:${HOST_USR_PATH}/lib/aarch64-linux-gnu:${LD_LIBRARY_PATH:-}"
 
 if [[ ! -x "${CUDA_HOME}/bin/nvcc" ]]; then
   echo "Missing nvcc at ${CUDA_HOME}/bin/nvcc; mount or point CUDA_HOME at JetPack CUDA." >&2
@@ -399,6 +402,11 @@ fi
 
 if ! ldconfig -p 2>/dev/null | grep -q 'libnvinfer.so.10'; then
   echo "libnvinfer.so.10 was not visible through ldconfig; continuing with LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >&2
+fi
+
+if [[ ! -f "${EDGELLM_PLUGIN_PATH}" ]]; then
+  echo "Missing Edge-LLM plugin library at ${EDGELLM_PLUGIN_PATH}; build NvInfer_edgellm_plugin before running this pipeline." >&2
+  exit 2
 fi
 
 SWAPFILE="${SWAPFILE:-/var/tmp/qwen3-asr-edgellm.swap}"
