@@ -1,0 +1,20 @@
+FROM nvcr.io/nvidia/pytorch:25.08-py3
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git rsync && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+COPY python_client /tmp/kubetorch/python_client
+COPY examples/qwen3_asr_orin /tmp/kubetorch/examples/qwen3_asr_orin
+
+RUN python -m pip install --upgrade pip && \
+    python -m pip install -e /tmp/kubetorch/python_client[client] && \
+    python -m pip install -e /tmp/kubetorch/examples/qwen3_asr_orin && \
+    python -m pip install nvidia-modelopt==0.44.0 transformers==5.10.2 accelerate
+
+CMD ["python", "-m", "qwen3_asr_orin.cli", "--help"]

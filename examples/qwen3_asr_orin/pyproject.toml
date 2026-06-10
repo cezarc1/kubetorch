@@ -1,0 +1,34 @@
+[project]
+name = "kubetorch-qwen3-asr-orin"
+version = "0.1.0"
+description = "Kubetorch experiment harness for Qwen3-ASR inference on Jetson Orin"
+requires-python = ">=3.11"
+dependencies = [
+    "datasets>=3.6.0",
+    "httpx>=0.28.0",
+    "huggingface-hub>=0.32.0",
+    "rich>=13.9.0",
+    "soundfile>=0.12.1",
+    "tqdm>=4.67.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
+quant = [
+    "accelerate>=1.12.0",
+    "nvidia-modelopt>=0.44.0",
+    "torch>=2.9.0",
+    "transformers>=5.10.0",
+]
+
+[project.scripts]
+qwen3-asr-orin = "qwen3_asr_orin.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["qwen3_asr_orin"]
