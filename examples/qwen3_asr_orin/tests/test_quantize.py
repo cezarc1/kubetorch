@@ -125,6 +125,7 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     assert "tensorrt-edgellm-export" in pipeline["stages"][1]["command"]
     assert "llm_build" in pipeline["stages"][2]["command"]
     assert "audio_build" in pipeline["stages"][3]["command"]
+    assert "--minTimeSteps 100 " in pipeline["stages"][3]["command"]
     assert "tensorrt-edgellm-preprocess-audio" in pipeline["stages"][4]["command"]
     assert "/work/bundle/audio" in pipeline["stages"][4]["command"]
     assert "/work/bundle/scripts/qwen3_asr_edgellm_benchmark.py" in pipeline["stages"][-1]["command"]

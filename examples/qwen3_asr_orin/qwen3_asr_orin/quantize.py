@@ -288,7 +288,7 @@ def _trt_edgellm_pipeline(
                     "./build/examples/multimodal/audio_build "
                     f"--onnxDir {onnx_dir}/audio "
                     f"--engineDir {engine_dir}/audio "
-                    "--minTimeSteps 1000 "
+                    "--minTimeSteps 100 "
                     "--maxTimeSteps 3000"
                 ),
             },
