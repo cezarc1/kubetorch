@@ -5,7 +5,7 @@ ARG TENSORRT_EDGE_LLM_REF=f9cc74623d95d7acf1addab6026b9d410ba81f52
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     TENSORRT_EDGE_LLM_HOME=/opt/TensorRT-Edge-LLM \
-    PYTHONPATH=/opt/TensorRT-Edge-LLM:${PYTHONPATH}
+    PYTHONPATH=/opt/TensorRT-Edge-LLM
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
