@@ -50,6 +50,11 @@ def main(argv: list[str] | None = None) -> None:
     trt_bundle.add_argument("--qwen-asr-root", required=True)
     trt_bundle.add_argument("--format", choices=("int8", "int4"), default="int8")
     trt_bundle.add_argument("--trt-edgellm-root", default="$TRT_EDGELLM_ROOT")
+    trt_bundle.add_argument("--jetson-node-name", default="jetson-orin-nano-01")
+    trt_bundle.add_argument("--host-cuda-path", default="/usr/local/cuda-13.2")
+    trt_bundle.add_argument("--host-usr-path", default="/usr")
+    trt_bundle.add_argument("--temp-swap-gib", type=int, default=16)
+    trt_bundle.add_argument("--runtime-output-dir")
     trt_bundle.add_argument("--copy-audio", action="store_true")
 
     args = parser.parse_args(argv)
@@ -95,6 +100,11 @@ def main(argv: list[str] | None = None) -> None:
             quant_format=args.format,
             materialize_audio="copy" if args.copy_audio else "symlink",
             trt_edgellm_root=args.trt_edgellm_root,
+            jetson_node_name=args.jetson_node_name,
+            host_cuda_path=args.host_cuda_path,
+            host_usr_path=args.host_usr_path,
+            temp_swap_gib=args.temp_swap_gib,
+            runtime_output_dir=args.runtime_output_dir,
         )
         print(bundle.pipeline_path)
 

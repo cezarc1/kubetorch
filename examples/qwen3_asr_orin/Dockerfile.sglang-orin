@@ -1,0 +1,32 @@
+FROM nvcr.io/nvidia/pytorch:25.08-py3
+
+ARG SGLANG_VERSION=0.5.12.post1
+ARG KERNELS_VERSION=0.14.1
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    HF_HOME=/models/huggingface \
+    TRANSFORMERS_CACHE=/models/huggingface/transformers \
+    TORCH_HOME=/models/torch \
+    XDG_CACHE_HOME=/models/cache \
+    HOME=/models/home
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates git rsync && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+COPY python_client /tmp/kubetorch/python_client
+COPY examples/qwen3_asr_orin /tmp/kubetorch/examples/qwen3_asr_orin
+
+RUN python -m pip install --upgrade pip && \
+    python -m pip install \
+      "sglang==${SGLANG_VERSION}" \
+      --extra-index-url https://download.pytorch.org/whl/cu130 \
+      --extra-index-url https://docs.sglang.ai/whl/cu130/ && \
+    python -m pip install "kernels==${KERNELS_VERSION}" "kernels-data==${KERNELS_VERSION}" && \
+    python -m pip install -e /tmp/kubetorch/python_client[client] && \
+    python -m pip install -e /tmp/kubetorch/examples/qwen3_asr_orin
+
+CMD ["sglang", "serve", "--help"]

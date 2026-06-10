@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 import qwen3_asr_orin.quantize as quantize
-from qwen3_asr_orin.datasets import AudioExample, write_manifest
+from qwen3_asr_orin.datasets import AudioExample, load_manifest, write_manifest
 from qwen3_asr_orin.quantize import (
     QuantizationSpec,
     int8_smoothquant_config,
@@ -79,27 +79,45 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
         qwen_asr_root="/opt/Qwen3-ASR",
         quant_format="int8",
         materialize_audio="copy",
+        runtime_output_dir="/work/bundle",
     )
 
     assert bundle.sample_count == 2
     assert (tmp_path / "bundle/audio/sample-one.wav").read_bytes() == b"first"
     assert (tmp_path / "bundle/audio/sample-two.wav").read_bytes() == b"second"
+    bundled_manifest = load_manifest(tmp_path / "bundle/manifest.jsonl")
+    assert bundled_manifest[0].audio_path == "/work/bundle/audio/sample-one.wav"
+    assert bundled_manifest[1].audio_path == "/work/bundle/audio/sample-two.wav"
     assert (tmp_path / "bundle/prompts.txt").read_text() == "sample-one\thello orin\nsample-two\tbonjour orin\n"
     benchmark_script = tmp_path / "bundle/scripts/qwen3_asr_edgellm_benchmark.py"
+    hosttrt_runner = tmp_path / "bundle/scripts/run_jetson_hosttrt_pipeline.sh"
     assert benchmark_script.exists()
     compile(benchmark_script.read_text(), str(benchmark_script), "exec")
+    assert hosttrt_runner.exists()
+    assert "ALLOW_TEMP_SWAP=1" in hosttrt_runner.read_text()
 
     pipeline = json.loads((tmp_path / "bundle/pipeline.json").read_text())
     assert pipeline["quantization"]["format"] == "int8"
     assert pipeline["quantization"]["model_path"] == "/models/Qwen3-ASR-1.7B"
     assert pipeline["quantization"]["qwen_asr_root"] == "/opt/Qwen3-ASR"
     assert pipeline["quantization"]["tensorrt_edgellm_version"] == "v0.8.0"
+    assert pipeline["quantization"]["local_output_dir"] == str(tmp_path / "bundle")
+    assert pipeline["quantization"]["runtime_output_dir"] == "/work/bundle"
+    assert pipeline["runtime_requirements"]["benchmark_node"] == "jetson-orin-nano-01"
+    assert pipeline["runtime_requirements"]["cuda_home"] == "/usr/local/cuda-13.2"
+    assert pipeline["runtime_requirements"]["tensorrt_version"] == "10.16.2.10"
+    assert pipeline["runtime_requirements"]["temp_swap_gib"] == 16
+    assert pipeline["runtime_requirements"]["kubernetes"]["runtime_class_name"] is None
+    assert pipeline["runner"]["jetson_hosttrt"] == "/work/bundle/scripts/run_jetson_hosttrt_pipeline.sh"
+    assert pipeline["runner"]["local_jetson_hosttrt"].endswith("run_jetson_hosttrt_pipeline.sh")
     assert "tensorrt-edgellm-quantize llm" in pipeline["stages"][0]["command"]
     assert "--quantization int8_sq" in pipeline["stages"][0]["command"]
     assert "tensorrt-edgellm-export" in pipeline["stages"][1]["command"]
     assert "llm_build" in pipeline["stages"][2]["command"]
     assert "audio_build" in pipeline["stages"][3]["command"]
     assert "tensorrt-edgellm-preprocess-audio" in pipeline["stages"][4]["command"]
-    assert "scripts/qwen3_asr_edgellm_benchmark.py" in pipeline["stages"][-1]["command"]
+    assert "/work/bundle/audio" in pipeline["stages"][4]["command"]
+    assert "/work/bundle/scripts/qwen3_asr_edgellm_benchmark.py" in pipeline["stages"][-1]["command"]
     assert "--manifest" in pipeline["stages"][-1]["command"]
     assert "llm_inference" in pipeline["stages"][-1]["command"]
+    assert "--strip-hypothesis-prefix-regex" in pipeline["stages"][-1]["command"]

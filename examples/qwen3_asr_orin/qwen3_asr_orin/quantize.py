@@ -10,6 +10,11 @@ from qwen3_asr_orin.datasets import AudioExample, load_manifest, write_manifest
 
 TENSORRT_EDGE_LLM_VERSION = "v0.8.0"
 TENSORRT_EDGE_LLM_COMMIT = "f9cc74623d95d7acf1addab6026b9d410ba81f52"
+JETSON_NODE_NAME = "jetson-orin-nano-01"
+JETSON_HOST_CUDA_PATH = "/usr/local/cuda-13.2"
+JETSON_HOST_USR_PATH = "/usr"
+JETSON_TEMP_SWAP_GIB = 16
+JETSON_TENSORRT_VERSION = "10.16.2.10"
 
 
 @dataclass(frozen=True)
@@ -30,6 +35,7 @@ class TrtEdgeLlmBundle:
     manifest_path: str
     prompts_path: str
     pipeline_path: str
+    hosttrt_runner_path: str
     sample_count: int
 
 
@@ -76,6 +82,11 @@ def export_trt_edgellm_bundle(
     quant_format: str = "int8",
     materialize_audio: str = "symlink",
     trt_edgellm_root: str = "$TRT_EDGELLM_ROOT",
+    jetson_node_name: str = JETSON_NODE_NAME,
+    host_cuda_path: str = JETSON_HOST_CUDA_PATH,
+    host_usr_path: str = JETSON_HOST_USR_PATH,
+    temp_swap_gib: int = JETSON_TEMP_SWAP_GIB,
+    runtime_output_dir: str | None = None,
 ) -> TrtEdgeLlmBundle:
     """Create TensorRT-Edge-LLM input files from the benchmark manifest."""
     if quant_format not in {"int8", "int4"}:
@@ -87,11 +98,14 @@ def export_trt_edgellm_bundle(
     output_dir.mkdir(parents=True, exist_ok=True)
     audio_dir = output_dir / "audio"
     audio_dir.mkdir(parents=True, exist_ok=True)
+    runtime_dir = Path(runtime_output_dir) if runtime_output_dir else output_dir
+    runtime_audio_dir = runtime_dir / "audio"
 
     bundled_examples: list[AudioExample] = []
     for example in examples:
         source = Path(example.audio_path)
-        target = audio_dir / _bundle_audio_name(example, source)
+        audio_name = _bundle_audio_name(example, source)
+        target = audio_dir / audio_name
         _materialize_audio(source, target, materialize_audio)
         bundled_examples.append(
             AudioExample(
@@ -99,7 +113,7 @@ def export_trt_edgellm_bundle(
                 dataset=example.dataset,
                 language=example.language,
                 split=example.split,
-                audio_path=str(target),
+                audio_path=str(runtime_audio_dir / audio_name),
                 transcript=example.transcript,
                 duration_seconds=example.duration_seconds,
             )
@@ -109,12 +123,14 @@ def export_trt_edgellm_bundle(
     prompts_path = output_dir / "prompts.txt"
     pipeline_path = output_dir / "pipeline.json"
     benchmark_script_path = output_dir / "scripts" / "qwen3_asr_edgellm_benchmark.py"
+    hosttrt_runner_path = output_dir / "scripts" / "run_jetson_hosttrt_pipeline.sh"
     write_manifest(bundled_examples, bundled_manifest_path)
     prompts_path.write_text(
         "".join(f"{example.id}\t{example.transcript}\n" for example in bundled_examples),
         encoding="utf-8",
     )
     _write_edgellm_benchmark_script(benchmark_script_path)
+    _write_jetson_hosttrt_runner_script(hosttrt_runner_path)
     pipeline_path.write_text(
         json.dumps(
             _trt_edgellm_pipeline(
@@ -122,10 +138,17 @@ def export_trt_edgellm_bundle(
                 qwen_asr_root=qwen_asr_root,
                 quant_format=quant_format,
                 output_dir=output_dir,
+                runtime_dir=runtime_dir,
                 audio_dir=audio_dir,
+                runtime_audio_dir=runtime_audio_dir,
                 prompts_path=prompts_path,
                 benchmark_script_path=benchmark_script_path,
                 trt_edgellm_root=trt_edgellm_root,
+                hosttrt_runner_path=hosttrt_runner_path,
+                jetson_node_name=jetson_node_name,
+                host_cuda_path=host_cuda_path,
+                host_usr_path=host_usr_path,
+                temp_swap_gib=temp_swap_gib,
             ),
             indent=2,
             sort_keys=True,
@@ -140,6 +163,7 @@ def export_trt_edgellm_bundle(
         manifest_path=str(bundled_manifest_path),
         prompts_path=str(prompts_path),
         pipeline_path=str(pipeline_path),
+        hosttrt_runner_path=str(hosttrt_runner_path),
         sample_count=len(bundled_examples),
     )
 
@@ -166,15 +190,26 @@ def _trt_edgellm_pipeline(
     qwen_asr_root: str,
     quant_format: str,
     output_dir: Path,
+    runtime_dir: Path,
     audio_dir: Path,
+    runtime_audio_dir: Path,
     prompts_path: Path,
     benchmark_script_path: Path,
     trt_edgellm_root: str,
+    hosttrt_runner_path: Path,
+    jetson_node_name: str,
+    host_cuda_path: str,
+    host_usr_path: str,
+    temp_swap_gib: int,
 ) -> dict:
-    quantized_dir = output_dir / f"Qwen3-ASR-1.7B-{quant_format}"
-    onnx_dir = output_dir / f"Qwen3-ASR-1.7B-{quant_format}-ONNX"
-    engine_dir = output_dir / f"Qwen3-ASR-1.7B-{quant_format}-Engines"
-    result_dir = output_dir / f"results-{quant_format}"
+    quantized_dir = runtime_dir / f"Qwen3-ASR-1.7B-{quant_format}"
+    onnx_dir = runtime_dir / f"Qwen3-ASR-1.7B-{quant_format}-ONNX"
+    engine_dir = runtime_dir / f"Qwen3-ASR-1.7B-{quant_format}-Engines"
+    result_dir = runtime_dir / f"results-{quant_format}"
+    runtime_prompts_path = runtime_dir / "prompts.txt"
+    runtime_manifest_path = runtime_dir / "manifest.jsonl"
+    runtime_benchmark_script_path = runtime_dir / "scripts" / "qwen3_asr_edgellm_benchmark.py"
+    runtime_hosttrt_runner_path = runtime_dir / "scripts" / "run_jetson_hosttrt_pipeline.sh"
     return {
         "quantization": {
             "format": quant_format,
@@ -186,10 +221,35 @@ def _trt_edgellm_pipeline(
             "onnx_dir": str(onnx_dir),
             "engine_dir": str(engine_dir),
             "trt_edgellm_root": trt_edgellm_root,
+            "local_output_dir": str(output_dir),
+            "runtime_output_dir": str(runtime_dir),
+        },
+        "runtime_requirements": {
+            "benchmark_node": jetson_node_name,
+            "jetpack": "7.2",
+            "jetson_linux": "39.2",
+            "architecture": "aarch64",
+            "cuda_home": host_cuda_path,
+            "host_usr_path": host_usr_path,
+            "tensorrt_version": JETSON_TENSORRT_VERSION,
+            "temp_swap_gib": temp_swap_gib,
+            "kubernetes": {
+                "node_selector": {"accelerator": "nvidia-jetson-orin-nano"},
+                "tolerations": [{"key": "nvidia.com/gpu", "operator": "Exists", "effect": "NoSchedule"}],
+                "gpu_limit": {"nvidia.com/gpu": 1},
+                "runtime_class_name": None,
+                "runtime_note": "Jetson K3s agent uses Docker with NVIDIA as the default runtime.",
+            },
+        },
+        "runner": {
+            "jetson_hosttrt": str(runtime_hosttrt_runner_path),
+            "local_jetson_hosttrt": str(hosttrt_runner_path),
+            "usage": f"ALLOW_TEMP_SWAP=1 {runtime_hosttrt_runner_path} {runtime_dir}/pipeline.json",
         },
         "notes": [
             "Quantize and export on the 4090/x86 host with TensorRT-Edge-LLM v0.8.0.",
-            "Build TensorRT engines on an Orin-class Jetson with enough memory; Nano 8 GB may not build engines reliably.",
+            "Build TensorRT engines on an Orin-class Jetson with host JetPack CUDA/TensorRT libraries.",
+            "The Orin Nano 8 GB engine build needs temporary swap; the generated runner creates it only when ALLOW_TEMP_SWAP=1.",
             "Run benchmark/inference on jetson-orin-nano-01 only for reportable Orin numbers.",
         ],
         "stages": [
@@ -237,23 +297,26 @@ def _trt_edgellm_pipeline(
                 "platform": "x86_64-4090-or-jetson-orin",
                 "command": (
                     "mkdir -p "
-                    f"{output_dir}/preprocessed-audio && "
+                    f"{runtime_dir}/preprocessed-audio && "
                     "while IFS=$'\\t' read -r sample_id _; do "
-                    f"tensorrt-edgellm-preprocess-audio --input {audio_dir}/$sample_id.* "
-                    f"--output {output_dir}/preprocessed-audio/$sample_id.safetensors; "
-                    f"done < {prompts_path}"
+                    f"audio_file=$(find {runtime_audio_dir} -maxdepth 1 -type f -name \"$sample_id.*\" -print -quit); "
+                    'test -n "$audio_file"; '
+                    'tensorrt-edgellm-preprocess-audio --input "$audio_file" '
+                    f"--output {runtime_dir}/preprocessed-audio/$sample_id.safetensors; "
+                    f"done < {runtime_prompts_path}"
                 ),
             },
             {
                 "name": "benchmark-nano",
                 "platform": "jetson-orin-nano-01",
                 "command": (
-                    f"python {benchmark_script_path} --prompts {prompts_path} "
-                    f"--manifest {output_dir}/manifest.jsonl "
-                    f"--preprocessed-audio-dir {output_dir}/preprocessed-audio "
+                    f"python {runtime_benchmark_script_path} --prompts {runtime_prompts_path} "
+                    f"--manifest {runtime_manifest_path} "
+                    f"--preprocessed-audio-dir {runtime_dir}/preprocessed-audio "
                     f"--engine-dir {engine_dir} --output-dir {result_dir} "
                     f"--trt-edgellm-root {trt_edgellm_root} "
-                    "--llm-inference ./build/examples/llm/llm_inference"
+                    "--llm-inference ./build/examples/llm/llm_inference "
+                    "--strip-hypothesis-prefix-regex '^language\\s+\\S+\\s+'"
                 ),
             },
         ],
@@ -274,11 +337,133 @@ def _write_edgellm_benchmark_script(path: Path) -> None:
     path.chmod(0o755)
 
 
+def _write_jetson_hosttrt_runner_script(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(_JETSON_HOSTTRT_RUNNER_SCRIPT, encoding="utf-8")
+    path.chmod(0o755)
+
+
+_JETSON_HOSTTRT_RUNNER_SCRIPT = r'''#!/usr/bin/env bash
+set -euo pipefail
+
+PIPELINE_JSON="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/pipeline.json}"
+LOG_DIR="${LOG_DIR:-$(dirname "${PIPELINE_JSON}")/logs/hosttrt-$(date -u +%Y%m%dT%H%M%SZ)}"
+mkdir -p "${LOG_DIR}"
+
+json_get() {
+  python3 - "$PIPELINE_JSON" "$1" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+value = payload
+for part in sys.argv[2].split("."):
+    value = value[part]
+print(value)
+PY
+}
+
+stage_command() {
+  python3 - "$PIPELINE_JSON" "$1" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+for stage in payload["stages"]:
+    if stage["name"] == sys.argv[2]:
+        print(stage["command"])
+        break
+else:
+    raise SystemExit(f"missing stage: {sys.argv[2]}")
+PY
+}
+
+if [[ "$(uname -m)" != "aarch64" ]]; then
+  echo "This runner must execute on an aarch64 Jetson target." >&2
+  exit 2
+fi
+
+CUDA_HOME="${CUDA_HOME:-$(json_get runtime_requirements.cuda_home)}"
+HOST_USR_PATH="${HOST_USR_PATH:-$(json_get runtime_requirements.host_usr_path)}"
+TEMP_SWAP_GIB="$(json_get runtime_requirements.temp_swap_gib)"
+export CUDA_HOME
+export PATH="${CUDA_HOME}/bin:${PATH}"
+export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${HOST_USR_PATH}/lib/aarch64-linux-gnu/nvidia:${HOST_USR_PATH}/lib/aarch64-linux-gnu/tegra:${HOST_USR_PATH}/lib/aarch64-linux-gnu:${LD_LIBRARY_PATH:-}"
+
+if [[ ! -x "${CUDA_HOME}/bin/nvcc" ]]; then
+  echo "Missing nvcc at ${CUDA_HOME}/bin/nvcc; mount or point CUDA_HOME at JetPack CUDA." >&2
+  exit 2
+fi
+
+if ! ldconfig -p 2>/dev/null | grep -q 'libnvinfer.so.10'; then
+  echo "libnvinfer.so.10 was not visible through ldconfig; continuing with LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >&2
+fi
+
+SWAPFILE="${SWAPFILE:-/var/tmp/qwen3-asr-edgellm.swap}"
+run_privileged() {
+  if [[ "${EUID}" == "0" ]]; then
+    "$@"
+  elif command -v sudo >/dev/null 2>&1; then
+    sudo "$@"
+  else
+    echo "Need root or sudo for: $*" >&2
+    return 1
+  fi
+}
+
+cleanup_swap() {
+  if [[ "${CREATED_SWAP:-0}" == "1" ]]; then
+    run_privileged swapoff "${SWAPFILE}" || true
+    run_privileged rm -f "${SWAPFILE}" || true
+  fi
+}
+trap cleanup_swap EXIT
+
+current_swap_kib="$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)"
+required_swap_kib="$((TEMP_SWAP_GIB * 1024 * 1024))"
+if (( current_swap_kib < required_swap_kib )); then
+  if [[ "${ALLOW_TEMP_SWAP:-0}" != "1" ]]; then
+    echo "SwapTotal is ${current_swap_kib} KiB; need about ${required_swap_kib} KiB. Re-run with ALLOW_TEMP_SWAP=1 to create temporary swap at ${SWAPFILE}." >&2
+    exit 2
+  fi
+  run_privileged fallocate -l "${TEMP_SWAP_GIB}G" "${SWAPFILE}"
+  run_privileged chmod 600 "${SWAPFILE}"
+  run_privileged mkswap "${SWAPFILE}"
+  run_privileged swapon "${SWAPFILE}"
+  CREATED_SWAP=1
+fi
+
+{
+  uname -a
+  cat /etc/nv_tegra_release || true
+  "${CUDA_HOME}/bin/nvcc" --version || true
+} > "${LOG_DIR}/environment.txt" 2>&1
+
+run_stage() {
+  local name="$1"
+  local command
+  command="$(stage_command "$name")"
+  echo "== ${name} ==" | tee "${LOG_DIR}/${name}.status"
+  /usr/bin/time -v bash -lc "${command}" > "${LOG_DIR}/${name}.log" 2>&1
+}
+
+run_stage build-llm-engine
+run_stage build-audio-engine
+run_stage preprocess-audio
+run_stage benchmark-nano
+
+echo "hosttrt logs: ${LOG_DIR}"
+'''
+
+
 _EDGELLM_BENCHMARK_SCRIPT = r'''#!/usr/bin/env python3
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -382,6 +567,7 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--trt-edgellm-root", type=Path, default=Path("."))
     parser.add_argument("--llm-inference", type=Path, default=Path("./build/examples/llm/llm_inference"))
+    parser.add_argument("--strip-hypothesis-prefix-regex")
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -416,18 +602,28 @@ def main() -> None:
         hypothesis = ""
         if output_path.exists():
             hypothesis = _first_text(json.loads(output_path.read_text(encoding="utf-8")))
+        scored_hypothesis = hypothesis
+        if args.strip_hypothesis_prefix_regex:
+            scored_hypothesis = re.sub(
+                args.strip_hypothesis_prefix_regex,
+                "",
+                scored_hypothesis,
+                flags=re.IGNORECASE,
+            ).strip()
         duration_seconds = durations.get(sample_id, 0.0)
         rtf = latency / duration_seconds if duration_seconds > 0 else 0.0
-        wer = _wer(reference, hypothesis)
+        wer = _wer(reference, scored_hypothesis)
         row = {
             "sample_id": sample_id,
             "reference": reference,
             "hypothesis": hypothesis,
+            "scored_hypothesis": scored_hypothesis,
             "duration_seconds": duration_seconds,
             "latency_seconds": latency,
             "rtf": rtf,
             "wer": wer,
             "returncode": completed.returncode,
+            "stdout_tail": completed.stdout[-2000:],
             "stderr_tail": completed.stderr[-2000:],
         }
         rows.append(row)

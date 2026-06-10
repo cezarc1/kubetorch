@@ -65,6 +65,8 @@ kubeconfig
 *.kubeconfig
 
 # Model files and data
+data/
+results/
 *.pt
 *.pth
 *.onnx
