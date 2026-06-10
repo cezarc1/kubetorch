@@ -87,3 +87,36 @@ qwen3-asr-orin quantize-modelopt \
 The next implementation step is the model-specific audio `forward_loop` needed
 for safe Qwen3-ASR calibration/export. The current scaffold keeps audio tower
 and `lm_head` in FP16 and targets the decoder quantizers with W8A8 SmoothQuant.
+
+## TensorRT-Edge-LLM Bundle
+
+Stock SGLang and vLLM both reached Qwen3-ASR model initialization on
+`jetson-orin-nano-01`, but OOMed on the 8 GB Nano before serving traffic. The
+next realistic INT8 path is a TensorRT-Edge-LLM-style artifact:
+
+1. quantize the local Qwen3-ASR checkpoint on the 4090/x86 host with ModelOpt,
+2. export the quantized checkpoint to ONNX,
+3. build TensorRT engines on an Orin-class Jetson builder,
+4. benchmark the final engines on the Orin Nano.
+
+Generate the calibration/benchmark input bundle from the shared manifest:
+
+```sh
+qwen3-asr-orin export-trt-edgellm-bundle \
+  --manifest data/qwen3-asr-orin/manifest.jsonl \
+  --output-dir results/qwen3-asr-orin/trt-edgellm-int8 \
+  --model-path /models/Qwen3-ASR-1.7B \
+  --qwen-asr-root /opt/Qwen3-ASR \
+  --format int8 \
+  --copy-audio
+```
+
+The command writes:
+
+- `audio/`: materialized calibration and benchmark audio files
+- `manifest.jsonl`: rewritten manifest pointing at the bundle audio paths
+- `prompts.txt`: tab-separated sample ID and reference transcript
+- `pipeline.json`: ordered quantize, ONNX export, engine build, and Nano benchmark commands
+
+This keeps the self-quantized INT8 artifact path reproducible without pretending
+that a ModelOpt checkpoint alone is directly serveable by Transformers.

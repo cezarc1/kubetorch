@@ -1,7 +1,13 @@
 import json
 from pathlib import Path
 
-from qwen3_asr_orin.quantize import QuantizationSpec, int8_smoothquant_config, write_quantization_spec
+import qwen3_asr_orin.quantize as quantize
+from qwen3_asr_orin.datasets import AudioExample, write_manifest
+from qwen3_asr_orin.quantize import (
+    QuantizationSpec,
+    int8_smoothquant_config,
+    write_quantization_spec,
+)
 
 
 def test_int8_smoothquant_config_preserves_audio_and_lm_head_modules():
@@ -32,3 +38,57 @@ def test_write_quantization_spec_records_reproducible_inputs(tmp_path: Path):
     assert payload["manifest_path"] == "/data/manifest.jsonl"
     assert payload["precision"] == "int8"
     assert payload["modelopt_config"]["algorithm"] == "smoothquant"
+
+
+def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_path: Path):
+    audio_dir = tmp_path / "source-audio"
+    audio_dir.mkdir()
+    first_audio = audio_dir / "sample-one.wav"
+    second_audio = audio_dir / "sample-two.wav"
+    first_audio.write_bytes(b"first")
+    second_audio.write_bytes(b"second")
+    manifest_path = tmp_path / "manifest.jsonl"
+    write_manifest(
+        [
+            AudioExample(
+                id="sample-one",
+                dataset="librispeech",
+                language="en",
+                split="dev-clean",
+                audio_path=str(first_audio),
+                transcript="hello orin",
+                duration_seconds=1.25,
+            ),
+            AudioExample(
+                id="sample-two",
+                dataset="fleurs",
+                language="fr",
+                split="validation",
+                audio_path=str(second_audio),
+                transcript="bonjour orin",
+                duration_seconds=2.5,
+            ),
+        ],
+        manifest_path,
+    )
+
+    bundle = quantize.export_trt_edgellm_bundle(
+        manifest_path=manifest_path,
+        output_dir=tmp_path / "bundle",
+        model_path="/models/Qwen3-ASR-1.7B",
+        qwen_asr_root="/opt/Qwen3-ASR",
+        quant_format="int8",
+        materialize_audio="copy",
+    )
+
+    assert bundle.sample_count == 2
+    assert (tmp_path / "bundle/audio/sample-one.wav").read_bytes() == b"first"
+    assert (tmp_path / "bundle/audio/sample-two.wav").read_bytes() == b"second"
+    assert (tmp_path / "bundle/prompts.txt").read_text() == "sample-one\thello orin\nsample-two\tbonjour orin\n"
+
+    pipeline = json.loads((tmp_path / "bundle/pipeline.json").read_text())
+    assert pipeline["quantization"]["format"] == "int8"
+    assert pipeline["quantization"]["model_path"] == "/models/Qwen3-ASR-1.7B"
+    assert pipeline["quantization"]["qwen_asr_root"] == "/opt/Qwen3-ASR"
+    assert "scripts/01_quantize.sh" in pipeline["stages"][0]["command"]
+    assert "scripts/04_benchmark.sh" in pipeline["stages"][-1]["command"]

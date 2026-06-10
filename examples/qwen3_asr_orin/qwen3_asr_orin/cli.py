@@ -5,7 +5,12 @@ from pathlib import Path
 
 from qwen3_asr_orin.benchmark import run_benchmark
 from qwen3_asr_orin.datasets import prepare_public_manifest
-from qwen3_asr_orin.quantize import QuantizationSpec, run_modelopt_quantization, write_quantization_spec
+from qwen3_asr_orin.quantize import (
+    QuantizationSpec,
+    export_trt_edgellm_bundle,
+    run_modelopt_quantization,
+    write_quantization_spec,
+)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -34,6 +39,18 @@ def main(argv: list[str] | None = None) -> None:
     quant.add_argument("--manifest", type=Path, required=True)
     quant.add_argument("--output-dir", type=Path, required=True)
     quant.add_argument("--write-spec-only", action="store_true")
+
+    trt_bundle = subparsers.add_parser(
+        "export-trt-edgellm-bundle",
+        help="Write TensorRT-Edge-LLM calibration, benchmark, and pipeline inputs",
+    )
+    trt_bundle.add_argument("--manifest", type=Path, required=True)
+    trt_bundle.add_argument("--output-dir", type=Path, required=True)
+    trt_bundle.add_argument("--model-path", required=True)
+    trt_bundle.add_argument("--qwen-asr-root", required=True)
+    trt_bundle.add_argument("--format", choices=("int8", "int4"), default="int8")
+    trt_bundle.add_argument("--trt-edgellm-root", default="$TRT_EDGELLM_ROOT")
+    trt_bundle.add_argument("--copy-audio", action="store_true")
 
     args = parser.parse_args(argv)
 
@@ -69,6 +86,17 @@ def main(argv: list[str] | None = None) -> None:
             print(write_quantization_spec(spec, args.output_dir))
         else:
             run_modelopt_quantization(spec)
+    elif args.command == "export-trt-edgellm-bundle":
+        bundle = export_trt_edgellm_bundle(
+            manifest_path=args.manifest,
+            output_dir=args.output_dir,
+            model_path=args.model_path,
+            qwen_asr_root=args.qwen_asr_root,
+            quant_format=args.format,
+            materialize_audio="copy" if args.copy_audio else "symlink",
+            trt_edgellm_root=args.trt_edgellm_root,
+        )
+        print(bundle.pipeline_path)
 
 
 if __name__ == "__main__":
