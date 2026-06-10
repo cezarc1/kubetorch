@@ -316,7 +316,8 @@ def _trt_edgellm_pipeline(
                     f"--engine-dir {engine_dir} --output-dir {result_dir} "
                     f"--trt-edgellm-root {trt_edgellm_root} "
                     "--llm-inference ./build/examples/llm/llm_inference "
-                    "--strip-hypothesis-prefix-regex '^language\\s+\\S+\\s+'"
+                    "--strip-hypothesis-prefix-regex "
+                    "'^language\\s+(?:English|German|Deutsch|Spanish|Español|French|Français)\\s*'"
                 ),
             },
         ],
@@ -590,6 +591,12 @@ def _wer(reference: str, hypothesis: str) -> float:
     return _edit_distance(reference_words, _words(hypothesis)) / len(reference_words)
 
 
+def _strip_hypothesis_prefix(text: str, pattern: str | None) -> str:
+    if not pattern:
+        return text.strip()
+    return re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Benchmark TensorRT-Edge-LLM Qwen3-ASR engines")
     parser.add_argument("--prompts", type=Path, required=True)
@@ -634,14 +641,7 @@ def main() -> None:
         hypothesis = ""
         if output_path.exists():
             hypothesis = _first_text(json.loads(output_path.read_text(encoding="utf-8")))
-        scored_hypothesis = hypothesis
-        if args.strip_hypothesis_prefix_regex:
-            scored_hypothesis = re.sub(
-                args.strip_hypothesis_prefix_regex,
-                "",
-                scored_hypothesis,
-                flags=re.IGNORECASE,
-            ).strip()
+        scored_hypothesis = _strip_hypothesis_prefix(hypothesis, args.strip_hypothesis_prefix_regex)
         duration_seconds = durations.get(sample_id, 0.0)
         rtf = latency / duration_seconds if duration_seconds > 0 else 0.0
         wer = _wer(reference, scored_hypothesis)

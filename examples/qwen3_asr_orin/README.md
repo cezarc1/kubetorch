@@ -109,9 +109,9 @@ and `lm_head` in FP16 and targets the decoder quantizers with W8A8 SmoothQuant.
 
 ## TensorRT-Edge-LLM Bundle
 
-The first Orin probes showed that stock FP16 serving is possible only in a very
-tight SGLang configuration, and that INT8 TensorRT-Edge-LLM is the realistic
-edge-serving path.
+The Orin probes showed that stock FP16 serving is possible only in a very tight
+SGLang configuration, and that INT8 TensorRT-Edge-LLM is the realistic
+edge-serving path for this 8 GB Jetson Orin Nano.
 
 Observed on `jetson-orin-nano-01`:
 
@@ -153,6 +153,13 @@ compilation for `sm_87`. The generated FlashInfer cache lived under
 `/root/.cache/flashinfer/0.6.11.post1/87/` inside the probe container. Treat this
 as a proof of execution, not a steady-state benchmark.
 
+A later SGLang FP16 deployment retry reached package install/model startup and
+consumed about `5.8GiB` before serving. Flux scaled the Deployment back to zero
+mid-startup, and the Jetson kubelet then reported
+`KubeletNotReady: PLEG is not healthy`. Do not use the stock SGLang Deployment
+as the main benchmark path on this Nano without a prebuilt image, a recovery
+plan, and manual isolation from Flux reconciliation.
+
 The current INT8 path is a TensorRT-Edge-LLM-style artifact:
 
 1. quantize the local Qwen3-ASR checkpoint on the 4090/x86 host with ModelOpt,
@@ -160,11 +167,12 @@ The current INT8 path is a TensorRT-Edge-LLM-style artifact:
 3. build TensorRT engines on an Orin-class Jetson builder,
 4. benchmark the final engines on the Orin Nano.
 
-A host-TensorRT Edge-LLM INT8 smoke on `jetson-orin-nano-01` already produced
-usable transcripts. The working build used JetPack 7.2 host CUDA/TensorRT
-rather than the NGC container TensorRT, because the container TensorRT rejected
-Orin SM87. It mounted host `/usr/local/cuda-13.2` and `/usr`, built engines with
-TensorRT `10.16.2.10`, and needed temporary 16 GB swap during engine build.
+A host-TensorRT Edge-LLM INT8 run on `jetson-orin-nano-01` produced usable
+transcripts over the full 16-sample LibriSpeech + FLEURS slice. The working
+build used JetPack 7.2 host CUDA/TensorRT rather than the NGC container
+TensorRT, because the container TensorRT rejected Orin SM87. It mounted host
+`/usr/local/cuda-13.2` and `/usr`, built engines with TensorRT `10.16.2.10`,
+and needed temporary 16 GB swap during engine build.
 
 Observed INT8 smoke result:
 
@@ -177,9 +185,23 @@ Observed INT8 smoke result:
 - peak unified memory: `5049MB`
 - sanity micro-WER: `7.6%` after stripping the leading `language English` prefix
 
-The host-TensorRT Edge-LLM path is now packaged by the bundle command below.
-The remaining work is to run it as a durable Kubetorch/GitOps job over the full
-LibriSpeech + FLEURS slice and archive those results.
+Observed full-slice INT8 result from the GitOps Job
+`stt-bench/qwen3-asr-edgellm-hosttrt`:
+
+- benchmark slice: 16 samples, `132.73s` total audio
+- runtime: TensorRT-Edge-LLM commit `f9cc74623d95d7acf1addab6026b9d410ba81f52`
+- total request latency: `224.10s`
+- mean latency: `14.01s`
+- aggregate RTF: `1.69`
+- mean per-sample RTF: `2.43`
+- errors: `0`
+- rescored mean WER: `13.16%`
+
+The full-slice benchmark launches `llm_inference` once per sample, so the RTF
+includes repeated process/model startup. A persistent Edge-LLM server or batched
+driver is the next optimization target before judging steady-state throughput.
+
+The host-TensorRT Edge-LLM path is packaged by the bundle command below.
 
 Generate the calibration/benchmark input bundle from the shared manifest:
 

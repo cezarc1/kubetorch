@@ -105,6 +105,20 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
         )
         == "language Englishhello orin"
     )
+    assert (
+        benchmark_namespace["_strip_hypothesis_prefix"](
+            "language EnglishWhen you call someone who is thousands of miles away.",
+            r"^language\s+(?:English|German|Deutsch|Spanish|Español|French|Français)\s*",
+        )
+        == "When you call someone who is thousands of miles away."
+    )
+    assert (
+        benchmark_namespace["_strip_hypothesis_prefix"](
+            "language EnglishLaut Polizei wird der Fahrer nicht angeklagt.",
+            r"^language\s+(?:English|German|Deutsch|Spanish|Español|French|Français)\s*",
+        )
+        == "Laut Polizei wird der Fahrer nicht angeklagt."
+    )
     assert hosttrt_runner.exists()
     hosttrt_runner_text = hosttrt_runner.read_text()
     assert "ALLOW_TEMP_SWAP=1" in hosttrt_runner_text
@@ -144,3 +158,4 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     assert "--manifest" in pipeline["stages"][-1]["command"]
     assert "llm_inference" in pipeline["stages"][-1]["command"]
     assert "--strip-hypothesis-prefix-regex" in pipeline["stages"][-1]["command"]
+    assert "English|German|Deutsch|Spanish" in pipeline["stages"][-1]["command"]
