@@ -389,11 +389,12 @@ CUDA_HOME="${CUDA_HOME:-$(json_get runtime_requirements.cuda_home)}"
 HOST_USR_PATH="${HOST_USR_PATH:-$(json_get runtime_requirements.host_usr_path)}"
 TEMP_SWAP_GIB="$(json_get runtime_requirements.temp_swap_gib)"
 TRT_EDGELLM_ROOT="${TRT_EDGELLM_ROOT:-$(pwd)}"
+ENGINE_DIR="$(json_get quantization.engine_dir)"
 export CUDA_HOME
 export TRT_EDGELLM_ROOT
 export EDGELLM_PLUGIN_PATH="${EDGELLM_PLUGIN_PATH:-${TRT_EDGELLM_ROOT}/build/libNvInfer_edgellm_plugin.so}"
 export PATH="${CUDA_HOME}/bin:${PATH}"
-export LD_LIBRARY_PATH="${TRT_EDGELLM_ROOT}/build:${CUDA_HOME}/lib64:${HOST_USR_PATH}/lib/aarch64-linux-gnu/nvidia:${HOST_USR_PATH}/lib/aarch64-linux-gnu/tegra:${HOST_USR_PATH}/lib/aarch64-linux-gnu:${LD_LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="${TRT_EDGELLM_ROOT}/build:${CUDA_HOME}/lib64:${CUDA_HOME}/targets/sbsa-linux/lib:/usr/local/cuda-13.0/targets/sbsa-linux/lib:${HOST_USR_PATH}/lib/aarch64-linux-gnu/nvidia:${HOST_USR_PATH}/lib/aarch64-linux-gnu/tegra:${HOST_USR_PATH}/lib/aarch64-linux-gnu:${LD_LIBRARY_PATH:-}"
 
 if [[ ! -x "${CUDA_HOME}/bin/nvcc" ]]; then
   echo "Missing nvcc at ${CUDA_HOME}/bin/nvcc; mount or point CUDA_HOME at JetPack CUDA." >&2
@@ -455,6 +456,16 @@ run_stage() {
   local command
   command="$(stage_command "$name")"
   echo "== ${name} ==" | tee "${LOG_DIR}/${name}.status"
+  if [[ "${FORCE_REBUILD_ENGINES:-0}" != "1" ]]; then
+    if [[ "${name}" == "build-llm-engine" && -f "${ENGINE_DIR}/llm/llm.engine" ]]; then
+      echo "cached: ${ENGINE_DIR}/llm/llm.engine" >> "${LOG_DIR}/${name}.status"
+      return 0
+    fi
+    if [[ "${name}" == "build-audio-engine" && -f "${ENGINE_DIR}/audio/audio/audio_encoder.engine" ]]; then
+      echo "cached: ${ENGINE_DIR}/audio/audio/audio_encoder.engine" >> "${LOG_DIR}/${name}.status"
+      return 0
+    fi
+  fi
   if [[ -x /usr/bin/time ]]; then
     /usr/bin/time -v bash -lc "${command}" > "${LOG_DIR}/${name}.log" 2>&1
   else
