@@ -395,6 +395,7 @@ export TRT_EDGELLM_ROOT
 export EDGELLM_PLUGIN_PATH="${EDGELLM_PLUGIN_PATH:-${TRT_EDGELLM_ROOT}/build/libNvInfer_edgellm_plugin.so}"
 export PATH="${CUDA_HOME}/bin:${PATH}"
 export LD_LIBRARY_PATH="${TRT_EDGELLM_ROOT}/build:${CUDA_HOME}/lib64:${CUDA_HOME}/targets/sbsa-linux/lib:/usr/local/cuda-13.0/targets/sbsa-linux/lib:${HOST_USR_PATH}/lib/aarch64-linux-gnu/nvidia:${HOST_USR_PATH}/lib/aarch64-linux-gnu/tegra:${HOST_USR_PATH}/lib/aarch64-linux-gnu:${LD_LIBRARY_PATH:-}"
+PYTORCH_LD_LIBRARY_PATH="${TRT_EDGELLM_ROOT}/build:${CUDA_HOME}/lib64:${CUDA_HOME}/targets/sbsa-linux/lib:/usr/local/cuda-13.0/targets/sbsa-linux/lib:/usr/local/lib/python3.12/dist-packages/torch/lib:/usr/local/lib/python3.12/dist-packages/torch_tensorrt/lib:/usr/local/cuda/compat/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
 
 if [[ ! -x "${CUDA_HOME}/bin/nvcc" ]]; then
   echo "Missing nvcc at ${CUDA_HOME}/bin/nvcc; mount or point CUDA_HOME at JetPack CUDA." >&2
@@ -454,6 +455,7 @@ fi
 run_stage() {
   local name="$1"
   local command
+  local stage_ld_library_path="${LD_LIBRARY_PATH}"
   command="$(stage_command "$name")"
   echo "== ${name} ==" | tee "${LOG_DIR}/${name}.status"
   if [[ "${FORCE_REBUILD_ENGINES:-0}" != "1" ]]; then
@@ -466,10 +468,13 @@ run_stage() {
       return 0
     fi
   fi
+  if [[ "${name}" == "preprocess-audio" ]]; then
+    stage_ld_library_path="${PYTORCH_LD_LIBRARY_PATH}"
+  fi
   if [[ -x /usr/bin/time ]]; then
-    /usr/bin/time -v bash -lc "${command}" > "${LOG_DIR}/${name}.log" 2>&1
+    env LD_LIBRARY_PATH="${stage_ld_library_path}" /usr/bin/time -v bash -lc "${command}" > "${LOG_DIR}/${name}.log" 2>&1
   else
-    bash -lc "${command}" > "${LOG_DIR}/${name}.log" 2>&1
+    env LD_LIBRARY_PATH="${stage_ld_library_path}" bash -lc "${command}" > "${LOG_DIR}/${name}.log" 2>&1
   fi
 }
 
