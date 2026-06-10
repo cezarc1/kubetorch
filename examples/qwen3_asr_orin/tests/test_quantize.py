@@ -92,7 +92,19 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     benchmark_script = tmp_path / "bundle/scripts/qwen3_asr_edgellm_benchmark.py"
     hosttrt_runner = tmp_path / "bundle/scripts/run_jetson_hosttrt_pipeline.sh"
     assert benchmark_script.exists()
-    compile(benchmark_script.read_text(), str(benchmark_script), "exec")
+    benchmark_source = benchmark_script.read_text()
+    compile(benchmark_source, str(benchmark_script), "exec")
+    benchmark_namespace: dict[str, object] = {"__name__": "generated_benchmark_test"}
+    exec(benchmark_source, benchmark_namespace)
+    assert (
+        benchmark_namespace["_first_text"](
+            {
+                "input_file": "/tmp/input.json",
+                "responses": [{"output_text": "language Englishhello orin"}],
+            }
+        )
+        == "language Englishhello orin"
+    )
     assert hosttrt_runner.exists()
     hosttrt_runner_text = hosttrt_runner.read_text()
     assert "ALLOW_TEMP_SWAP=1" in hosttrt_runner_text

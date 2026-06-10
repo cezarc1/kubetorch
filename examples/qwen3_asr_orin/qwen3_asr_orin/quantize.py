@@ -544,11 +544,14 @@ def _first_text(value: object) -> str:
     if isinstance(value, str):
         return value
     if isinstance(value, dict):
-        for key in ("text", "content", "output", "generated_text", "transcript"):
+        for key in ("output_text", "generated_text", "transcript", "text", "content", "output"):
             found = _first_text(value.get(key))
             if found:
                 return found
-        for child in value.values():
+        metadata_keys = {"input_file", "input_path", "inputFile", "output_file", "output_path", "outputFile"}
+        for key, child in value.items():
+            if key in metadata_keys:
+                continue
             found = _first_text(child)
             if found:
                 return found
