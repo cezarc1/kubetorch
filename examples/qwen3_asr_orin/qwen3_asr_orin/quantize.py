@@ -89,8 +89,8 @@ def export_trt_edgellm_bundle(
     runtime_output_dir: str | None = None,
 ) -> TrtEdgeLlmBundle:
     """Create TensorRT-Edge-LLM input files from the benchmark manifest."""
-    if quant_format not in {"int8", "int4"}:
-        raise ValueError("quant_format must be int8 or int4")
+    if quant_format not in {"fp16", "int8", "int4"}:
+        raise ValueError("quant_format must be fp16, int8, or int4")
     if materialize_audio not in {"copy", "symlink"}:
         raise ValueError("materialize_audio must be copy or symlink")
 
@@ -220,6 +220,7 @@ def _trt_edgellm_pipeline(
     return {
         "quantization": {
             "format": quant_format,
+            "method": _edgellm_quantization_method(quant_format),
             "tensorrt_edgellm_version": TENSORRT_EDGE_LLM_VERSION,
             "tensorrt_edgellm_commit": TENSORRT_EDGE_LLM_COMMIT,
             "model_path": model_path,
@@ -260,7 +261,47 @@ def _trt_edgellm_pipeline(
             "The Orin Nano 8 GB engine build needs temporary swap; the generated runner creates it only when ALLOW_TEMP_SWAP=1.",
             "Run benchmark/inference on jetson-orin-nano-01 only for reportable Orin numbers.",
         ],
-        "stages": [
+        "stages": _trt_edgellm_stages(
+            model_path=model_path,
+            quant_format=quant_format,
+            quantized_dir=quantized_dir,
+            onnx_dir=onnx_dir,
+            engine_dir=engine_dir,
+            runtime_dir=runtime_dir,
+            runtime_audio_dir=runtime_audio_dir,
+            runtime_prompts_path=runtime_prompts_path,
+            runtime_manifest_path=runtime_manifest_path,
+            runtime_benchmark_script_path=runtime_benchmark_script_path,
+            result_dir=result_dir,
+            trt_edgellm_root=trt_edgellm_root,
+        ),
+    }
+
+
+def _trt_edgellm_stages(
+    model_path: str,
+    quant_format: str,
+    quantized_dir: Path,
+    onnx_dir: Path,
+    engine_dir: Path,
+    runtime_dir: Path,
+    runtime_audio_dir: Path,
+    runtime_prompts_path: Path,
+    runtime_manifest_path: Path,
+    runtime_benchmark_script_path: Path,
+    result_dir: Path,
+    trt_edgellm_root: str,
+) -> list[dict]:
+    if quant_format == "fp16":
+        stages = [
+            {
+                "name": "export-onnx",
+                "platform": "x86_64-4090",
+                "command": f"tensorrt-edgellm-export {model_path} {onnx_dir}",
+            }
+        ]
+    else:
+        stages = [
             {
                 "name": "quantize",
                 "platform": "x86_64-4090",
@@ -277,6 +318,10 @@ def _trt_edgellm_pipeline(
                 "platform": "x86_64-4090",
                 "command": f"tensorrt-edgellm-export {quantized_dir} {onnx_dir}",
             },
+        ]
+
+    stages.extend(
+        [
             {
                 "name": "build-llm-engine",
                 "platform": "jetson-orin-builder",
@@ -324,20 +369,24 @@ def _trt_edgellm_pipeline(
                     f"--engine-dir {engine_dir} --output-dir {result_dir} "
                     f"--trt-edgellm-root {trt_edgellm_root} "
                     "--llm-inference ./build/examples/llm/llm_inference "
+                    f"--phase-events {result_dir}/phase_events.jsonl "
                     "--strip-hypothesis-prefix-regex "
                     "'^language\\s+(?:English|German|Deutsch|Spanish|Español|French|Français)\\s*'"
                 ),
             },
-        ],
-    }
+        ]
+    )
+    return stages
 
 
 def _edgellm_quantization_method(quant_format: str) -> str:
+    if quant_format == "fp16":
+        return "fp16"
     if quant_format == "int8":
         return "int8_sq"
     if quant_format == "int4":
         return "int4_awq"
-    raise ValueError("quant_format must be int8 or int4")
+    raise ValueError("quant_format must be fp16, int8, or int4")
 
 
 def _write_edgellm_benchmark_script(path: Path) -> None:
@@ -461,10 +510,33 @@ fi
   "${CUDA_HOME}/bin/nvcc" --version || true
 } > "${LOG_DIR}/environment.txt" 2>&1
 
+TEGRASTATS_PID=""
+start_tegrastats() {
+  local name="$1"
+  TEGRASTATS_PID=""
+  if command -v tegrastats >/dev/null 2>&1; then
+    tegrastats --interval "${TEGRASTATS_INTERVAL_MS:-1000}" > "${LOG_DIR}/${name}.tegrastats.log" 2>&1 &
+    TEGRASTATS_PID="$!"
+  else
+    echo "tegrastats not found" > "${LOG_DIR}/${name}.tegrastats.log"
+  fi
+}
+
+stop_tegrastats() {
+  if [[ -n "${TEGRASTATS_PID}" ]]; then
+    kill "${TEGRASTATS_PID}" >/dev/null 2>&1 || true
+    wait "${TEGRASTATS_PID}" >/dev/null 2>&1 || true
+    TEGRASTATS_PID=""
+  fi
+}
+
 run_stage() {
   local name="$1"
   local command
   local stage_ld_library_path="${LD_LIBRARY_PATH}"
+  local nsys_output
+  local status
+  local profile_prefix=()
   command="$(stage_command "$name")"
   echo "== ${name} ==" | tee "${LOG_DIR}/${name}.status"
   if [[ "${FORCE_REBUILD_ENGINES:-0}" != "1" ]]; then
@@ -480,11 +552,47 @@ run_stage() {
   if [[ "${name}" == "preprocess-audio" ]]; then
     stage_ld_library_path="${PYTORCH_LD_LIBRARY_PATH}"
   fi
-  if [[ -x /usr/bin/time ]]; then
-    env LD_LIBRARY_PATH="${stage_ld_library_path}" /usr/bin/time -v bash -lc "${command}" > "${LOG_DIR}/${name}.log" 2>&1
-  else
-    env LD_LIBRARY_PATH="${stage_ld_library_path}" bash -lc "${command}" > "${LOG_DIR}/${name}.log" 2>&1
+  if [[ "${name}" == "benchmark-nano" ]]; then
+    if [[ -n "${BENCHMARK_LIMIT:-}" ]]; then
+      command="${command} --limit ${BENCHMARK_LIMIT}"
+    fi
+    if [[ -n "${BENCHMARK_SAMPLE_IDS:-}" ]]; then
+      for sample_id in ${BENCHMARK_SAMPLE_IDS//,/ }; do
+        command="${command} --sample-id ${sample_id}"
+      done
+    fi
+    if [[ "${NSYS_PROFILE_BENCHMARK:-0}" == "1" ]]; then
+      if command -v nsys >/dev/null 2>&1; then
+        nsys_output="${LOG_DIR}/${name}"
+        profile_prefix=(
+          nsys profile
+          --force-overwrite=true
+          --trace=cuda,nvtx,osrt,cudnn,cublas
+          --output "${nsys_output}"
+        )
+      else
+        echo "NSYS_PROFILE_BENCHMARK=1 but nsys was not found; running benchmark without Nsight Systems." >> "${LOG_DIR}/${name}.status"
+      fi
+    fi
   fi
+  start_tegrastats "$name"
+  set +e
+  if [[ -x /usr/bin/time ]]; then
+    env LD_LIBRARY_PATH="${stage_ld_library_path}" /usr/bin/time -v "${profile_prefix[@]}" bash -lc "${command}" > "${LOG_DIR}/${name}.log" 2>&1
+  else
+    env LD_LIBRARY_PATH="${stage_ld_library_path}" "${profile_prefix[@]}" bash -lc "${command}" > "${LOG_DIR}/${name}.log" 2>&1
+  fi
+  status="$?"
+  set -e
+  stop_tegrastats
+  if [[ "${name}" == "benchmark-nano" && "${NSYS_PROFILE_BENCHMARK:-0}" == "1" && -f "${LOG_DIR}/${name}.nsys-rep" ]]; then
+    nsys stats \
+      --report cuda_gpu_kern_sum,cuda_api_sum,osrt_sum \
+      --format csv \
+      --output "${LOG_DIR}/${name}-nsys-stats" \
+      "${LOG_DIR}/${name}.nsys-rep" > "${LOG_DIR}/${name}.nsys-stats.log" 2>&1 || true
+  fi
+  return "${status}"
 }
 
 run_stage build-llm-engine
@@ -529,6 +637,19 @@ def _load_durations(path: Path | None) -> dict[str, float]:
             row = json.loads(line)
             durations[str(row["id"])] = float(row["duration_seconds"])
     return durations
+
+
+def _select_prompts(
+    prompts: list[tuple[str, str]],
+    sample_ids: list[str],
+    limit: int | None,
+) -> list[tuple[str, str]]:
+    if sample_ids:
+        wanted = set(sample_ids)
+        prompts = [prompt for prompt in prompts if prompt[0] in wanted]
+    if limit is not None:
+        prompts = prompts[:limit]
+    return prompts
 
 
 def _input_payload(audio_path: Path) -> dict:
@@ -615,10 +736,15 @@ def main() -> None:
     parser.add_argument("--trt-edgellm-root", type=Path, default=Path("."))
     parser.add_argument("--llm-inference", type=Path, default=Path("./build/examples/llm/llm_inference"))
     parser.add_argument("--strip-hypothesis-prefix-regex")
+    parser.add_argument("--limit", type=int)
+    parser.add_argument("--sample-id", action="append", default=[])
+    parser.add_argument("--phase-events", type=Path)
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     samples_path = args.output_dir / "samples.jsonl"
+    phase_events_path = args.phase_events or args.output_dir / "phase_events.jsonl"
+    phase_events_path.parent.mkdir(parents=True, exist_ok=True)
     durations = _load_durations(args.manifest)
     total_audio_seconds = 0.0
     total_latency_seconds = 0.0
@@ -626,12 +752,16 @@ def main() -> None:
     total_wer = 0.0
     errors = 0
     rows = []
+    phase_events = []
 
-    for sample_id, reference in _load_prompts(args.prompts):
+    for sample_id, reference in _select_prompts(_load_prompts(args.prompts), args.sample_id, args.limit):
+        sample_started = time.perf_counter()
         audio_path = args.preprocessed_audio_dir / f"{sample_id}.safetensors"
         input_path = args.output_dir / f"{sample_id}.input.json"
         output_path = args.output_dir / f"{sample_id}.output.json"
+        input_started = time.perf_counter()
         input_path.write_text(json.dumps(_input_payload(audio_path), indent=2) + "\n", encoding="utf-8")
+        input_write_seconds = time.perf_counter() - input_started
         command = [
             str(args.llm_inference),
             "--engineDir",
@@ -643,23 +773,37 @@ def main() -> None:
             "--outputFile",
             str(output_path),
         ]
-        started = time.perf_counter()
+        inference_started = time.perf_counter()
         completed = subprocess.run(command, cwd=args.trt_edgellm_root, text=True, capture_output=True, check=False)
-        latency = time.perf_counter() - started
+        inference_seconds = time.perf_counter() - inference_started
         hypothesis = ""
+        output_parse_started = time.perf_counter()
         if output_path.exists():
             hypothesis = _first_text(json.loads(output_path.read_text(encoding="utf-8")))
+        output_parse_seconds = time.perf_counter() - output_parse_started
+        scoring_started = time.perf_counter()
         scored_hypothesis = _strip_hypothesis_prefix(hypothesis, args.strip_hypothesis_prefix_regex)
         duration_seconds = durations.get(sample_id, 0.0)
-        rtf = latency / duration_seconds if duration_seconds > 0 else 0.0
+        rtf = inference_seconds / duration_seconds if duration_seconds > 0 else 0.0
         wer = _wer(reference, scored_hypothesis)
+        scoring_seconds = time.perf_counter() - scoring_started
+        sample_wall_seconds = time.perf_counter() - sample_started
+        phase_seconds = {
+            "input_write": input_write_seconds,
+            "inference": inference_seconds,
+            "output_parse": output_parse_seconds,
+            "scoring": scoring_seconds,
+            "sample_wall": sample_wall_seconds,
+        }
         row = {
             "sample_id": sample_id,
             "reference": reference,
             "hypothesis": hypothesis,
             "scored_hypothesis": scored_hypothesis,
             "duration_seconds": duration_seconds,
-            "latency_seconds": latency,
+            "latency_seconds": inference_seconds,
+            "sample_wall_seconds": sample_wall_seconds,
+            "phase_seconds": phase_seconds,
             "rtf": rtf,
             "wer": wer,
             "returncode": completed.returncode,
@@ -667,8 +811,16 @@ def main() -> None:
             "stderr_tail": completed.stderr[-2000:],
         }
         rows.append(row)
+        phase_events.append(
+            {
+                "sample_id": sample_id,
+                "duration_seconds": duration_seconds,
+                "returncode": completed.returncode,
+                "phase_seconds": phase_seconds,
+            }
+        )
         total_audio_seconds += duration_seconds
-        total_latency_seconds += latency
+        total_latency_seconds += inference_seconds
         total_rtf += rtf
         total_wer += wer
         if completed.returncode != 0:
@@ -676,6 +828,9 @@ def main() -> None:
 
     with samples_path.open("w", encoding="utf-8") as handle:
         for row in rows:
+            handle.write(json.dumps(row, sort_keys=True) + "\n")
+    with phase_events_path.open("w", encoding="utf-8") as handle:
+        for row in phase_events:
             handle.write(json.dumps(row, sort_keys=True) + "\n")
     summary = {
         "sample_count": len(rows),
@@ -687,6 +842,7 @@ def main() -> None:
         "aggregate_rtf": total_latency_seconds / total_audio_seconds if total_audio_seconds > 0 else 0.0,
         "mean_wer": total_wer / len(rows) if rows else 0.0,
         "samples_path": str(samples_path),
+        "phase_events_path": str(phase_events_path),
     }
     (args.output_dir / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
     print(json.dumps(summary, indent=2, sort_keys=True))

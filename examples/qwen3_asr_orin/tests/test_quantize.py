@@ -94,6 +94,9 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     assert benchmark_script.exists()
     benchmark_source = benchmark_script.read_text()
     compile(benchmark_source, str(benchmark_script), "exec")
+    assert "phase_events" in benchmark_source
+    assert "--limit" in benchmark_source
+    assert "--sample-id" in benchmark_source
     benchmark_namespace: dict[str, object] = {"__name__": "generated_benchmark_test"}
     exec(benchmark_source, benchmark_namespace)
     assert (
@@ -131,6 +134,11 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     assert 'if [[ "${name}" == "preprocess-audio" ]]' in hosttrt_runner_text
     assert "FORCE_REBUILD_ENGINES" in hosttrt_runner_text
     assert "cached: ${ENGINE_DIR}/llm/llm.engine" in hosttrt_runner_text
+    assert "NSYS_PROFILE_BENCHMARK" in hosttrt_runner_text
+    assert "BENCHMARK_LIMIT" in hosttrt_runner_text
+    assert "tegrastats" in hosttrt_runner_text
+    assert "nsys profile" in hosttrt_runner_text
+    assert "nsys stats" in hosttrt_runner_text
 
     pipeline = json.loads((tmp_path / "bundle/pipeline.json").read_text())
     assert pipeline["quantization"]["format"] == "int8"
@@ -159,6 +167,7 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     assert "llm_inference" in pipeline["stages"][-1]["command"]
     assert "--strip-hypothesis-prefix-regex" in pipeline["stages"][-1]["command"]
     assert "English|German|Deutsch|Spanish" in pipeline["stages"][-1]["command"]
+    assert "--phase-events" in pipeline["stages"][-1]["command"]
 
 
 def test_export_trt_edgellm_bundle_uses_model_specific_artifact_names(tmp_path: Path):
@@ -196,4 +205,45 @@ def test_export_trt_edgellm_bundle_uses_model_specific_artifact_names(tmp_path: 
     assert pipeline["quantization"]["engine_dir"] == "/work/bundle/Qwen3-ASR-0.6B-int8-Engines"
     assert pipeline["stages"][0]["command"].startswith(
         "tensorrt-edgellm-quantize llm --model_dir Qwen/Qwen3-ASR-0.6B "
+    )
+
+
+def test_export_trt_edgellm_bundle_can_generate_fp16_pipeline(tmp_path: Path):
+    audio_path = tmp_path / "sample.wav"
+    audio_path.write_bytes(b"audio")
+    manifest_path = tmp_path / "manifest.jsonl"
+    write_manifest(
+        [
+            AudioExample(
+                id="sample",
+                dataset="librispeech",
+                language="en",
+                split="dev-clean",
+                audio_path=str(audio_path),
+                transcript="hello",
+                duration_seconds=1.0,
+            )
+        ],
+        manifest_path,
+    )
+
+    quantize.export_trt_edgellm_bundle(
+        manifest_path=manifest_path,
+        output_dir=tmp_path / "bundle",
+        model_path="/models/Qwen3-ASR-0.6B",
+        qwen_asr_root="/opt/Qwen3-ASR",
+        quant_format="fp16",
+        runtime_output_dir="/work/bundle",
+    )
+
+    pipeline = json.loads((tmp_path / "bundle/pipeline.json").read_text())
+    stage_names = [stage["name"] for stage in pipeline["stages"]]
+    assert pipeline["quantization"]["format"] == "fp16"
+    assert pipeline["quantization"]["method"] == "fp16"
+    assert pipeline["quantization"]["onnx_dir"] == "/work/bundle/Qwen3-ASR-0.6B-fp16-ONNX"
+    assert pipeline["quantization"]["engine_dir"] == "/work/bundle/Qwen3-ASR-0.6B-fp16-Engines"
+    assert "quantize" not in stage_names
+    assert stage_names[0] == "export-onnx"
+    assert pipeline["stages"][0]["command"] == (
+        "tensorrt-edgellm-export /models/Qwen3-ASR-0.6B /work/bundle/Qwen3-ASR-0.6B-fp16-ONNX"
     )

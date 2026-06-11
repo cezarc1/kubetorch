@@ -292,6 +292,10 @@ For the historical 1.7B path, keep the same command shape but use
 `--output-dir results/qwen3-asr-orin/trt-edgellm-17b-int8` and
 `--model-path /models/Qwen3-ASR-1.7B`.
 
+Use `--format fp16` to generate the matching unquantized TensorRT-Edge-LLM
+bundle. Use `--format int4` only after the INT8 path is profiled and the
+export/build failure mode is acceptable to investigate.
+
 The command writes:
 
 - `audio/`: materialized calibration and benchmark audio files
@@ -329,3 +333,40 @@ qwen3-asr-orin export-trt-edgellm-bundle \
   --runtime-output-dir /work/bundle \
   --copy-audio
 ```
+
+## Profile Before Optimizing
+
+The generated host-TensorRT runner supports an opt-in profiler pass. Keep it
+small because Nsight traces are expensive on the 8 GB Orin Nano:
+
+```sh
+NSYS_PROFILE_BENCHMARK=1 \
+BENCHMARK_LIMIT=2 \
+LOG_DIR=/work/logs/hosttrt-06b-profile \
+bash /work/bundle/scripts/run_jetson_hosttrt_pipeline.sh /work/bundle/pipeline.json
+```
+
+The benchmark still writes the usual `summary.json` and `samples.jsonl`. It now
+also writes `phase_events.jsonl`, which separates input JSON creation,
+`llm_inference` subprocess time, output parsing, scoring, and total per-sample
+wall time. The runner captures `tegrastats` for each stage and wraps only the
+`benchmark-nano` stage in `nsys profile` when `NSYS_PROFILE_BENCHMARK=1`.
+
+Use `BENCHMARK_SAMPLE_IDS=sample-a,sample-b` instead of `BENCHMARK_LIMIT` when
+you need stable named samples in a profiler trace.
+
+## Compare Saved Runs
+
+After rescoring or profiling, compare saved TensorRT summaries without touching
+the cluster:
+
+```sh
+qwen3-asr-orin compare-edgellm-runs \
+  --run int8=results/qwen3-asr-orin/jetson-hosttrt-06b-run/results-int8-rescored/summary.json \
+  --run fp16=results/qwen3-asr-orin/jetson-hosttrt-06b-fp16/results-fp16-rescored/summary.json \
+  --output results/qwen3-asr-orin/analysis/qwen3-asr-06b-trt-comparison.md
+```
+
+Lower RTF is faster; lower WER is better. Treat the comparison report as an
+index over artifacts. The profiler traces are still the source of truth for why
+a run is slow.

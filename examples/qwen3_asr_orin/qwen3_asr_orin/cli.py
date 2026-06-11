@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from qwen3_asr_orin.benchmark import run_benchmark
+from qwen3_asr_orin.compare import write_comparison_report
 from qwen3_asr_orin.datasets import prepare_public_manifest
 from qwen3_asr_orin.edgellm_results import DEFAULT_LANGUAGE_PREFIX_REGEX, rescore_samples_file
 from qwen3_asr_orin.quantize import (
@@ -49,7 +50,7 @@ def main(argv: list[str] | None = None) -> None:
     trt_bundle.add_argument("--output-dir", type=Path, required=True)
     trt_bundle.add_argument("--model-path", required=True)
     trt_bundle.add_argument("--qwen-asr-root", required=True)
-    trt_bundle.add_argument("--format", choices=("int8", "int4"), default="int8")
+    trt_bundle.add_argument("--format", choices=("fp16", "int8", "int4"), default="int8")
     trt_bundle.add_argument("--trt-edgellm-root", default="$TRT_EDGELLM_ROOT")
     trt_bundle.add_argument("--jetson-node-name", default="jetson-orin-nano-01")
     trt_bundle.add_argument("--host-cuda-path", default="/usr/local/cuda-13.2")
@@ -62,6 +63,13 @@ def main(argv: list[str] | None = None) -> None:
     rescore.add_argument("--samples", type=Path, required=True)
     rescore.add_argument("--output-dir", type=Path, required=True)
     rescore.add_argument("--strip-prefix-regex", default=DEFAULT_LANGUAGE_PREFIX_REGEX)
+
+    compare = subparsers.add_parser(
+        "compare-edgellm-runs",
+        help="Write a markdown comparison for saved Edge-LLM summaries",
+    )
+    compare.add_argument("--run", action="append", required=True, help="Run summary in label=path format")
+    compare.add_argument("--output", type=Path, required=True)
 
     args = parser.parse_args(argv)
 
@@ -120,6 +128,8 @@ def main(argv: list[str] | None = None) -> None:
             strip_prefix_regex=args.strip_prefix_regex,
         )
         print(args.output_dir / "summary.json")
+    elif args.command == "compare-edgellm-runs":
+        print(write_comparison_report(args.run, args.output))
 
 
 if __name__ == "__main__":
