@@ -181,12 +181,31 @@ readiness. Logs reached weight loading with `avail mem=3.77 GB`, selected
 `triton_attn` for multimodal attention, and then the rank-0 scheduler died with
 exit code `-9`.
 
+The `Qwen/Qwen3-ASR-0.6B` SGLang retry got farther but still was not a usable
+Orin Nano serving path. With `mem_fraction_static=0.60`, `max_total_tokens=128`,
+`max_running_requests=1`, disabled CUDA graph, and disabled radix cache, SGLang
+loaded the 0.6B model in `21.04s`, reported `avail mem=2.03 GB` after weights,
+allocated a 128-token KV cache, and reached readiness. The same run emitted the
+PyTorch warning that the wheel supports Ampere ranges except `sm_87`, which is
+the Orin GPU. Idle pod memory was already about `5.6GiB`. The first real
+in-cluster `/v1/audio/transcriptions` request then made the Jetson stop posting
+kubelet status; Kubernetes reported `NodeStatusUnknown`, both SGLang pods stuck
+in `Terminating`, and SSH timed out during banner exchange while ICMP still
+responded. Treat this as a host-level wedge, likely memory pressure or swap
+thrash, not a clean Kubernetes OOM kill.
+
 The current INT8 path is a TensorRT-Edge-LLM-style artifact:
 
 1. quantize the local Qwen3-ASR checkpoint on the 4090/x86 host with ModelOpt,
 2. export the quantized checkpoint to ONNX,
 3. build TensorRT engines on an Orin-class Jetson builder,
 4. benchmark the final engines on the Orin Nano.
+
+When moving Kubetorch export artifacts through the data-store, override the
+repo-root rsync ignore filters. The repo `.gitignore` excludes `*.onnx` and
+`results/`, so an apparently successful `kt.put` or `kt get` can silently omit
+the Edge-LLM graph files unless the transfer explicitly includes `*.onnx`,
+`*.onnx.data`, and `*.safetensors`.
 
 A host-TensorRT Edge-LLM INT8 run on `jetson-orin-nano-01` produced usable
 transcripts over the full 16-sample LibriSpeech + FLEURS slice. The working
@@ -206,7 +225,22 @@ Observed INT8 smoke result:
 - peak unified memory: `5049MB`
 - sanity micro-WER: `7.6%` after stripping the leading `language English` prefix
 
-Observed full-slice INT8 result from the GitOps Job
+Observed full-slice 0.6B INT8 result from the GitOps Job
+`stt-bench/qwen3-asr-06b-edgellm-hosttrt`:
+
+- benchmark slice: 16 samples, `132.73s` total audio
+- Jetson Linux: R39.2, kernel `6.8.12-1021-tegra`
+- host CUDA: `13.2.78`
+- LLM engine build: `265.778s`
+- audio engine build: `105.746s`
+- total request latency: `157.07s`
+- mean latency: `9.82s`
+- aggregate RTF: `1.18`
+- mean per-sample RTF: `1.42`
+- errors: `0`
+- rescored mean WER: `6.55%`
+
+Historical full-slice 1.7B INT8 result from the GitOps Job
 `stt-bench/qwen3-asr-edgellm-hosttrt`:
 
 - benchmark slice: 16 samples, `132.73s` total audio
@@ -217,6 +251,11 @@ Observed full-slice INT8 result from the GitOps Job
 - mean per-sample RTF: `2.43`
 - errors: `0`
 - rescored mean WER: `12.81%`
+
+On this small 16-sample sanity slice, the 0.6B INT8 TensorRT path was about
+`1.43x` faster by aggregate RTF than the 1.7B INT8 path and also produced lower
+rescored WER. Treat the WER delta as directional only; the slice is too small
+to be a model-quality benchmark.
 
 The full-slice benchmark launches `llm_inference` once per sample, so the RTF
 includes repeated process/model startup. A persistent Edge-LLM server or batched

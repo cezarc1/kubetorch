@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -78,8 +80,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not args.no_snapshot_model and not Path(args.model_id).exists():
             model_dir = snapshot_model(args.model_id, args.model_cache_dir, output_dir, steps)
 
-        quantized_dir = output_dir / f"Qwen3-ASR-1.7B-{args.quantization}"
-        onnx_dir = output_dir / f"Qwen3-ASR-1.7B-{args.quantization}-ONNX"
+        prefix = artifact_prefix(args.model_id, args.quantization)
+        quantized_dir = output_dir / prefix
+        onnx_dir = output_dir / f"{prefix}-ONNX"
         record_step(
             "quantize",
             [
@@ -117,6 +120,42 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.upload:
             upload_result(output_dir)
     return exit_code
+
+
+def artifact_prefix(model_id: str, quantization: str) -> str:
+    raw_name = model_id.rstrip("/").split("/")[-1] or "model"
+    model_name = re.sub(r"[^A-Za-z0-9_.-]+", "-", raw_name).strip(".-") or "model"
+    quant_name = re.sub(r"[^A-Za-z0-9_.-]+", "-", quantization).strip(".-") or "quantized"
+    return f"{model_name}-{quant_name}"
+
+
+def artifact_filter_options() -> str | None:
+    return (
+        "--include='*/' "
+        "--include='*.json' "
+        "--include='*.log' "
+        "--include='*.onnx' "
+        "--include='*.onnx.data' "
+        "--include='*.safetensors' "
+        "--exclude='*'"
+    )
+
+
+def artifact_rsync_exclude_override() -> str:
+    return "--exclude='*.pyc' --exclude='__pycache__' --exclude='.venv' --exclude='.git'"
+
+
+@contextlib.contextmanager
+def artifact_upload_filters():
+    previous = os.environ.get("KT_RSYNC_FILTERS")
+    os.environ["KT_RSYNC_FILTERS"] = artifact_rsync_exclude_override()
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop("KT_RSYNC_FILTERS", None)
+        else:
+            os.environ["KT_RSYNC_FILTERS"] = previous
 
 
 def install_edge_llm(edge_llm_dir: Path, edge_llm_ref: str, record_step) -> None:
@@ -240,16 +279,8 @@ def upload_result(output_dir: Path) -> None:
         import kubetorch as kt
 
         key = f"runs/{run_id}/artifacts/qwen3-asr-edgellm-smoke"
-        artifact_filter = (
-            "--include='*/' "
-            "--include='*.json' "
-            "--include='*.log' "
-            "--include='*.onnx' "
-            "--include='*.onnx.data' "
-            "--include='*.safetensors' "
-            "--exclude='*'"
-        )
-        kt.put(key=key, src=output_dir, namespace=namespace, force=True, filter_options=artifact_filter)
+        with artifact_upload_filters():
+            kt.put(key=key, src=output_dir, namespace=namespace, force=True, filter_options=artifact_filter_options())
         kt.artifact(
             "qwen3-asr-edgellm-smoke",
             uri=f"kt://{namespace}/{key}",
