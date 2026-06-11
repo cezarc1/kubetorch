@@ -63,4 +63,4 @@
 - The Kubetorch data-store transfer needed explicit rsync filters because the repo `.gitignore` excludes `*.onnx` and `results/`.
 - The Jetson GitOps Job `stt-bench/qwen3-asr-06b-edgellm-hosttrt` completed and produced full-slice TensorRT results: aggregate RTF `1.18`, mean latency `9.82s`, errors `0`, rescored mean WER `6.55%`.
 - A smallest-feasible SGLang 0.6B retry reached readiness, but the first real in-cluster audio request made `jetson-orin-nano-01` stop posting kubelet status and SSH timed out during banner exchange.
-- Remaining cleanup requires the Jetson to recover or be manually rebooted so the temporary swap file and terminating SGLang pods can be removed.
+- After the Jetson recovered, cleanup removed the temporary swap file and stale debug/SGLang pods. The SGLang and vLLM Deployments were left scaled to zero.
