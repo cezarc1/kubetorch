@@ -489,19 +489,36 @@ cleanup_swap() {
 }
 trap cleanup_swap EXIT
 
-current_swap_kib="$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)"
-required_swap_kib="$((TEMP_SWAP_GIB * 1024 * 1024))"
-swap_slack_kib="$((64 * 1024))"
-if (( current_swap_kib + swap_slack_kib < required_swap_kib )); then
-  if [[ "${ALLOW_TEMP_SWAP:-0}" != "1" ]]; then
-    echo "SwapTotal is ${current_swap_kib} KiB; need about ${required_swap_kib} KiB plus ${swap_slack_kib} KiB slack. Re-run with ALLOW_TEMP_SWAP=1 to create temporary swap at ${SWAPFILE}." >&2
-    exit 2
+needs_temp_swap() {
+  if [[ "${FORCE_REBUILD_ENGINES:-0}" == "1" ]]; then
+    return 0
   fi
-  run_privileged fallocate -l "${TEMP_SWAP_GIB}G" "${SWAPFILE}"
-  run_privileged chmod 600 "${SWAPFILE}"
-  run_privileged mkswap "${SWAPFILE}"
-  run_privileged swapon "${SWAPFILE}"
-  CREATED_SWAP=1
+  if [[ ! -f "${ENGINE_DIR}/llm/llm.engine" ]]; then
+    return 0
+  fi
+  if [[ ! -f "${ENGINE_DIR}/audio/audio/audio_encoder.engine" ]]; then
+    return 0
+  fi
+  return 1
+}
+
+if needs_temp_swap; then
+  current_swap_kib="$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)"
+  required_swap_kib="$((TEMP_SWAP_GIB * 1024 * 1024))"
+  swap_slack_kib="$((64 * 1024))"
+  if (( current_swap_kib + swap_slack_kib < required_swap_kib )); then
+    if [[ "${ALLOW_TEMP_SWAP:-0}" != "1" ]]; then
+      echo "SwapTotal is ${current_swap_kib} KiB; need about ${required_swap_kib} KiB plus ${swap_slack_kib} KiB slack. Re-run with ALLOW_TEMP_SWAP=1 to create temporary swap at ${SWAPFILE}." >&2
+      exit 2
+    fi
+    run_privileged fallocate -l "${TEMP_SWAP_GIB}G" "${SWAPFILE}"
+    run_privileged chmod 600 "${SWAPFILE}"
+    run_privileged mkswap "${SWAPFILE}"
+    run_privileged swapon "${SWAPFILE}"
+    CREATED_SWAP=1
+  fi
+else
+  echo "Engine cache is complete; skipping swap guard." > "${LOG_DIR}/swap.status"
 fi
 
 {

@@ -134,6 +134,8 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     assert 'if [[ "${name}" == "preprocess-audio" ]]' in hosttrt_runner_text
     assert "FORCE_REBUILD_ENGINES" in hosttrt_runner_text
     assert "cached: ${ENGINE_DIR}/llm/llm.engine" in hosttrt_runner_text
+    assert "needs_temp_swap" in hosttrt_runner_text
+    assert "Engine cache is complete; skipping swap guard." in hosttrt_runner_text
     assert "NSYS_PROFILE_BENCHMARK" in hosttrt_runner_text
     assert "BENCHMARK_LIMIT" in hosttrt_runner_text
     assert "tegrastats" in hosttrt_runner_text
