@@ -139,6 +139,8 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     assert "NSYS_PROFILE_BENCHMARK" in hosttrt_runner_text
     assert "BENCHMARK_LIMIT" in hosttrt_runner_text
     assert "tegrastats" in hosttrt_runner_text
+    assert "NSYS_BIN" in hosttrt_runner_text
+    assert "/usr/local/cuda/bin/nsys" in hosttrt_runner_text
     assert "nsys profile" in hosttrt_runner_text
     assert "nsys stats" in hosttrt_runner_text
 

@@ -547,10 +547,23 @@ stop_tegrastats() {
   fi
 }
 
+resolve_nsys_bin() {
+  if [[ -n "${NSYS_BIN:-}" ]]; then
+    echo "${NSYS_BIN}"
+    return 0
+  fi
+  if [[ -x /usr/local/cuda/bin/nsys ]]; then
+    echo /usr/local/cuda/bin/nsys
+    return 0
+  fi
+  command -v nsys
+}
+
 run_stage() {
   local name="$1"
   local command
   local stage_ld_library_path="${LD_LIBRARY_PATH}"
+  local nsys_bin
   local nsys_output
   local status
   local profile_prefix=()
@@ -579,10 +592,11 @@ run_stage() {
       done
     fi
     if [[ "${NSYS_PROFILE_BENCHMARK:-0}" == "1" ]]; then
-      if command -v nsys >/dev/null 2>&1; then
+      if nsys_bin="$(resolve_nsys_bin)"; then
         nsys_output="${LOG_DIR}/${name}"
+        echo "Using nsys profile via ${nsys_bin}" >> "${LOG_DIR}/${name}.status"
         profile_prefix=(
-          nsys profile
+          "${nsys_bin}" profile
           --force-overwrite=true
           --trace=cuda,nvtx,osrt,cudnn,cublas
           --output "${nsys_output}"
@@ -603,7 +617,9 @@ run_stage() {
   set -e
   stop_tegrastats
   if [[ "${name}" == "benchmark-nano" && "${NSYS_PROFILE_BENCHMARK:-0}" == "1" && -f "${LOG_DIR}/${name}.nsys-rep" ]]; then
-    nsys stats \
+    nsys_bin="$(resolve_nsys_bin)"
+    echo "Using nsys stats via ${nsys_bin}" >> "${LOG_DIR}/${name}.status"
+    "${nsys_bin}" stats \
       --report cuda_gpu_kern_sum,cuda_api_sum,osrt_sum \
       --format csv \
       --output "${LOG_DIR}/${name}-nsys-stats" \
