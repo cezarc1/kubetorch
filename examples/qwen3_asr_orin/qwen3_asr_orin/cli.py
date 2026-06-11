@@ -36,7 +36,7 @@ def main(argv: list[str] | None = None) -> None:
     bench.add_argument("--timeout-seconds", type=float, default=120.0)
 
     quant = subparsers.add_parser("quantize-modelopt", help="Write or run the ModelOpt INT8 quantization spec")
-    quant.add_argument("--model-id", default="Qwen/Qwen3-ASR-1.7B")
+    quant.add_argument("--model-id", default="Qwen/Qwen3-ASR-0.6B")
     quant.add_argument("--manifest", type=Path, required=True)
     quant.add_argument("--output-dir", type=Path, required=True)
     quant.add_argument("--write-spec-only", action="store_true")

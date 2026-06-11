@@ -185,6 +185,11 @@ def _materialize_audio(source: Path, target: Path, materialize_audio: str) -> No
         target.symlink_to(source)
 
 
+def _model_artifact_name(model_path: str) -> str:
+    raw_name = model_path.rstrip("/").split("/")[-1] or "model"
+    return re.sub(r"[^A-Za-z0-9_.-]+", "-", raw_name).strip(".-") or "model"
+
+
 def _trt_edgellm_pipeline(
     model_path: str,
     qwen_asr_root: str,
@@ -202,9 +207,11 @@ def _trt_edgellm_pipeline(
     host_usr_path: str,
     temp_swap_gib: int,
 ) -> dict:
-    quantized_dir = runtime_dir / f"Qwen3-ASR-1.7B-{quant_format}"
-    onnx_dir = runtime_dir / f"Qwen3-ASR-1.7B-{quant_format}-ONNX"
-    engine_dir = runtime_dir / f"Qwen3-ASR-1.7B-{quant_format}-Engines"
+    model_name = _model_artifact_name(model_path)
+    artifact_prefix = f"{model_name}-{quant_format}"
+    quantized_dir = runtime_dir / artifact_prefix
+    onnx_dir = runtime_dir / f"{artifact_prefix}-ONNX"
+    engine_dir = runtime_dir / f"{artifact_prefix}-Engines"
     result_dir = runtime_dir / f"results-{quant_format}"
     runtime_prompts_path = runtime_dir / "prompts.txt"
     runtime_manifest_path = runtime_dir / "manifest.jsonl"
@@ -216,6 +223,7 @@ def _trt_edgellm_pipeline(
             "tensorrt_edgellm_version": TENSORRT_EDGE_LLM_VERSION,
             "tensorrt_edgellm_commit": TENSORRT_EDGE_LLM_COMMIT,
             "model_path": model_path,
+            "model_name": model_name,
             "qwen_asr_root": qwen_asr_root,
             "quantized_dir": str(quantized_dir),
             "onnx_dir": str(onnx_dir),

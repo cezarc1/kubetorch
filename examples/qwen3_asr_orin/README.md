@@ -1,15 +1,18 @@
 # Qwen3-ASR Orin Bakeoff
 
-This example benchmarks `Qwen/Qwen3-ASR-1.7B` as an Orin-only STT workload.
-The 4090 is used only to prepare or quantize artifacts; reported inference
-numbers should come from `jetson-orin-nano-01`.
+This example benchmarks Qwen3-ASR as an Orin-only STT workload. The conservative
+path now starts with `Qwen/Qwen3-ASR-0.6B` on TensorRT-Edge-LLM, then compares
+SGLang only after the TensorRT engine path is measured. The 4090 is used only to
+prepare or quantize artifacts; reported inference numbers should come from
+`jetson-orin-nano-01`.
 
 ## Goal
 
 ```text
-Run an Orin-only Qwen3-ASR-1.7B inference bakeoff, using the 4090 only to build
-INT8 artifacts, and produce reproducible speed/quality evidence through
-Kubetorch and GitOps.
+Run an Orin-only Qwen3-ASR inference bakeoff, using the 4090 only to build INT8
+artifacts, and produce reproducible speed/quality evidence through Kubetorch and
+GitOps. Start with `Qwen/Qwen3-ASR-0.6B`; keep the `1.7B` results as historical
+evidence and a stretch target.
 ```
 
 ## Prepare The Dataset Manifest
@@ -98,20 +101,29 @@ spec and intentionally stops before claiming a deployable TensorRT artifact:
 
 ```sh
 qwen3-asr-orin quantize-modelopt \
+  --model-id Qwen/Qwen3-ASR-0.6B \
   --manifest data/qwen3-asr-orin/manifest.jsonl \
-  --output-dir results/qwen3-asr-orin/int8-modelopt \
+  --output-dir results/qwen3-asr-orin/06b-int8-modelopt \
   --write-spec-only
 ```
 
 The next implementation step is the model-specific audio `forward_loop` needed
 for safe Qwen3-ASR calibration/export. The current scaffold keeps audio tower
 and `lm_head` in FP16 and targets the decoder quantizers with W8A8 SmoothQuant.
+The CLI defaults to `Qwen/Qwen3-ASR-0.6B`; pass `--model-id Qwen/Qwen3-ASR-1.7B`
+only when intentionally reproducing the earlier larger-model run.
 
 ## TensorRT-Edge-LLM Bundle
 
 The Orin probes showed that stock FP16 serving is possible only in a very tight
-SGLang configuration, and that INT8 TensorRT-Edge-LLM is the realistic
-edge-serving path for this 8 GB Jetson Orin Nano.
+SGLang configuration, and that TensorRT-Edge-LLM is the realistic edge-serving
+path for this 8 GB Jetson Orin Nano. The current conservative target is
+`Qwen/Qwen3-ASR-0.6B` with INT8 first, falling back to INT4 only if TensorRT or
+memory pressure makes INT8 impractical.
+
+ONNX is an intermediate export artifact in this path. Do not report ONNX export
+success as a performance result. Report only TensorRT engine build success and
+engine-backed inference numbers from the Jetson.
 
 Observed on `jetson-orin-nano-01`:
 
@@ -220,13 +232,13 @@ qwen3-asr-orin rescore-edgellm-results \
 
 The host-TensorRT Edge-LLM path is packaged by the bundle command below.
 
-Generate the calibration/benchmark input bundle from the shared manifest:
+Generate the 0.6B calibration/benchmark input bundle from the shared manifest:
 
 ```sh
 qwen3-asr-orin export-trt-edgellm-bundle \
   --manifest data/qwen3-asr-orin/manifest.jsonl \
-  --output-dir results/qwen3-asr-orin/trt-edgellm-int8 \
-  --model-path /models/Qwen3-ASR-1.7B \
+  --output-dir results/qwen3-asr-orin/trt-edgellm-06b-int8 \
+  --model-path /models/Qwen3-ASR-0.6B \
   --qwen-asr-root /opt/Qwen3-ASR \
   --format int8 \
   --jetson-node-name jetson-orin-nano-01 \
@@ -236,6 +248,10 @@ qwen3-asr-orin export-trt-edgellm-bundle \
   --runtime-output-dir /work/bundle \
   --copy-audio
 ```
+
+For the historical 1.7B path, keep the same command shape but use
+`--output-dir results/qwen3-asr-orin/trt-edgellm-17b-int8` and
+`--model-path /models/Qwen3-ASR-1.7B`.
 
 The command writes:
 
@@ -256,8 +272,8 @@ paths recorded in `pipeline.json`:
 
 ```sh
 ALLOW_TEMP_SWAP=1 \
-  results/qwen3-asr-orin/trt-edgellm-int8/scripts/run_jetson_hosttrt_pipeline.sh \
-  results/qwen3-asr-orin/trt-edgellm-int8/pipeline.json
+  results/qwen3-asr-orin/trt-edgellm-06b-int8/scripts/run_jetson_hosttrt_pipeline.sh \
+  results/qwen3-asr-orin/trt-edgellm-06b-int8/pipeline.json
 ```
 
 For a Kubernetes pod where host `/usr` is mounted under `/host/usr`, generate
@@ -266,8 +282,8 @@ the bundle with:
 ```sh
 qwen3-asr-orin export-trt-edgellm-bundle \
   --manifest data/qwen3-asr-orin/manifest.jsonl \
-  --output-dir results/qwen3-asr-orin/trt-edgellm-int8 \
-  --model-path /models/Qwen3-ASR-1.7B \
+  --output-dir results/qwen3-asr-orin/trt-edgellm-06b-int8 \
+  --model-path /models/Qwen3-ASR-0.6B \
   --qwen-asr-root /opt/Qwen3-ASR \
   --host-cuda-path /host/usr/local/cuda-13.2 \
   --host-usr-path /host/usr \

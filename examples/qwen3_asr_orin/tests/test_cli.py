@@ -57,6 +57,27 @@ def test_cli_exports_trt_edgellm_bundle(tmp_path: Path, capsys):
     assert str(tmp_path / "bundle/pipeline.json") in capsys.readouterr().out
 
 
+def test_cli_quantize_modelopt_defaults_to_qwen3_asr_06b(tmp_path: Path, capsys):
+    manifest_path = tmp_path / "manifest.jsonl"
+    manifest_path.write_text("", encoding="utf-8")
+
+    main(
+        [
+            "quantize-modelopt",
+            "--manifest",
+            str(manifest_path),
+            "--output-dir",
+            str(tmp_path / "quant"),
+            "--write-spec-only",
+        ]
+    )
+
+    spec_path = tmp_path / "quant" / "quantization-spec.json"
+    payload = json.loads(spec_path.read_text())
+    assert payload["model_id"] == "Qwen/Qwen3-ASR-0.6B"
+    assert str(spec_path) in capsys.readouterr().out
+
+
 def test_cli_rescores_edgellm_results(tmp_path: Path, capsys):
     samples_path = tmp_path / "samples.jsonl"
     samples_path.write_text(

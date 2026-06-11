@@ -159,3 +159,41 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     assert "llm_inference" in pipeline["stages"][-1]["command"]
     assert "--strip-hypothesis-prefix-regex" in pipeline["stages"][-1]["command"]
     assert "English|German|Deutsch|Spanish" in pipeline["stages"][-1]["command"]
+
+
+def test_export_trt_edgellm_bundle_uses_model_specific_artifact_names(tmp_path: Path):
+    audio_path = tmp_path / "sample.wav"
+    audio_path.write_bytes(b"audio")
+    manifest_path = tmp_path / "manifest.jsonl"
+    write_manifest(
+        [
+            AudioExample(
+                id="sample",
+                dataset="librispeech",
+                language="en",
+                split="dev-clean",
+                audio_path=str(audio_path),
+                transcript="hello",
+                duration_seconds=1.0,
+            )
+        ],
+        manifest_path,
+    )
+
+    quantize.export_trt_edgellm_bundle(
+        manifest_path=manifest_path,
+        output_dir=tmp_path / "bundle",
+        model_path="Qwen/Qwen3-ASR-0.6B",
+        qwen_asr_root="/opt/Qwen3-ASR",
+        quant_format="int8",
+        runtime_output_dir="/work/bundle",
+    )
+
+    pipeline = json.loads((tmp_path / "bundle/pipeline.json").read_text())
+    assert pipeline["quantization"]["model_name"] == "Qwen3-ASR-0.6B"
+    assert pipeline["quantization"]["quantized_dir"] == "/work/bundle/Qwen3-ASR-0.6B-int8"
+    assert pipeline["quantization"]["onnx_dir"] == "/work/bundle/Qwen3-ASR-0.6B-int8-ONNX"
+    assert pipeline["quantization"]["engine_dir"] == "/work/bundle/Qwen3-ASR-0.6B-int8-Engines"
+    assert pipeline["stages"][0]["command"].startswith(
+        "tensorrt-edgellm-quantize llm --model_dir Qwen/Qwen3-ASR-0.6B "
+    )
