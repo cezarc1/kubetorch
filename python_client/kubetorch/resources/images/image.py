@@ -433,11 +433,9 @@ class Image:
                 are copied to the destination, creating an additional directory layer at the destination.
                 (Default: ``False``)
             filter_options (str, optional): Additional filter options for the underlying rsync.
-                These are added to (not replacing) the default filters, which filter out:
-                 `.gitignore`, `.ktignore`, common Python artifacts (`*.pyc`, `__pycache__`),
-                 virtual environments (`.venv`), and git metadata (`.git`).
-
-                Your filter_options are appended after these defaults. Examples:
+                These are appended after the default filters for ``.gitignore``,
+                ``.ktignore``, common Python artifacts, virtual environments, and
+                git metadata. Examples:
 
                 - Exclude more patterns: ``"--exclude='*.log' --exclude='temp/'"``
                 - Include specific files: ``"--include='important.log' --exclude='*.log'"``

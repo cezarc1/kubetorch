@@ -1,14 +1,53 @@
-# 📦Kubetorch🔥
+# Kubetorch
 
-**A Fast, Pythonic, "Serverless" Interface for Running ML Workloads on Kubernetes**
+**Agent-friendly ML batch runs and Pythonic remote execution on Kubernetes**
 
-Kubetorch lets you programmatically build, iterate, and deploy ML applications on Kubernetes at any scale - directly from Python.
+This fork focuses on reproducible ML runs on Kubernetes. Each batch run can
+capture the exact source snapshot, sanitized environment, intent, start time,
+logs, notes, and artifact references so humans and coding agents can inspect
+what happened after the container exits.
 
-It brings your cluster's compute power into your local development environment, enabling extremely fast iteration (1-2 seconds). Logs, exceptions, and hardware faults are automatically propagated back to you in real-time.
+Kubetorch still supports the upstream Pythonic remote execution model: bring
+cluster compute into notebooks, IDEs, CI, or production code without rewriting
+your workload around a DAG system.
 
-Since Kubetorch has no local runtime or code serialization, you can access large-scale cluster compute from any Python environment - your IDE, notebooks, CI pipelines, or production code - just like you would use a local process pool.
+## What This Fork Emphasizes
 
-## Hello World
+- **Inspectable batch runs**: submit Kubernetes Jobs with a durable run ID,
+  intent, author, source key, status, logs, notes, and artifact references.
+- **Artifact-first ML workflows**: register checkpoints, metrics, data
+  manifests, W&B/TensorBoard links, and other result references with copyable
+  `kt://...` URIs.
+- **Agent-ready history**: list prior runs before launching the next one, then
+  let an agent read exact code, environment, logs, notes, and output artifacts.
+- **Kubernetes-native execution**: use the cluster scheduler and storage you
+  already operate rather than forcing every experiment into a DAG orchestrator.
+
+## Batch Run Quickstart
+
+```bash
+kt runs list --namespace kubetorch
+
+kt run \
+  --name nanogpt-baseline \
+  --intent "GPT-2 124M baseline smoke on cluster GPU" \
+  --namespace kubetorch \
+  --image ghcr.io/cezarc1/nanogpt-kubetorch:dev \
+  --source-dir . \
+  --resources '{"requests":{"cpu":"2","memory":"12Gi","nvidia.com/gpu":"1"},"limits":{"nvidia.com/gpu":"1"}}' \
+  -- \
+  uv run python train.py config/train_shakespeare_char.py
+
+kt runs show RUN_ID
+kt runs logs RUN_ID
+kt runs artifact list RUN_ID
+kt runs note add RUN_ID "Result note: baseline completed; inspect val loss" --author agent
+```
+
+Use batch runs for SFT, RL, evals, data preprocessing, and long GPU jobs where
+the outcome needs to be explainable later.
+
+## Python Remote Execution
 
 ```python
 import kubetorch as kt
@@ -28,12 +67,6 @@ if __name__ == "__main__":
     print(result)  # "Hello from Kubetorch!"
 ```
 
-## What Kubetorch Enables
-
-- **100x faster iteration** from 10+ minutes to 1-3 seconds for complex ML applications like RL and distributed training
-- **50%+ compute cost savings** through intelligent resource allocation, bin-packing, and dynamic scaling
-- **95% fewer production faults** with built-in fault handling with programmatic error recovery and resource adjustment
-
 ## Installation
 
 ### 1. Python Client
@@ -42,23 +75,34 @@ if __name__ == "__main__":
 pip install "kubetorch[client]"
 ```
 
-### 2. Kubernetes Deployment (Helm)
+### 2. Kubernetes Deployment
 
 ```bash
-# Option 1: Install directly from OCI registry
+# Upstream chart
 helm upgrade --install kubetorch oci://ghcr.io/run-house/charts/kubetorch \
   --version 0.5.0 -n kubetorch --create-namespace
-
-# Option 2: Download chart locally first
-helm pull oci://ghcr.io/run-house/charts/kubetorch --version 0.5.0 --untar
-helm upgrade --install kubetorch ./kubetorch -n kubetorch --create-namespace
 ```
 
-For detailed setup instructions, see our [Installation Guide](https://www.run.house/kubetorch/installation).
+This fork is usually deployed from fork-owned chart and image tags when testing
+agent-first batch-run behavior. Use immutable tags for controller, data-store,
+and workload images.
+
+## Documentation
+
+```bash
+pip install -r python_client/kubetorch/docs/requirements.txt
+cd python_client/kubetorch/docs && make html
+open _build/html/index.html
+```
+
+Published fork docs are expected at
+[`cezarc1.github.io/kubetorch`](https://cezarc1.github.io/kubetorch/) after the
+GitHub Pages workflow runs on `main`.
 
 ## Source Layout
 
-This repo now includes the customer-facing OSS deployment components that were previously split across internal and OSS repos:
+This repo now includes the customer-facing OSS deployment components that were
+previously split across internal and OSS repos:
 
 - `python_client/` for the SDK
 - `charts/kubetorch/` for the Helm chart
@@ -66,19 +110,17 @@ This repo now includes the customer-facing OSS deployment components that were p
 - `release/default_images/` for the workload base images
 - `release/` for release scripts and version sync
 
+## Non-Goals
 
-## Kubetorch Serverless
-
-Contact us ([email](mailto:hello@run.house), [Slack](https://join.slack.com/t/kubetorch/shared_invite/zt-3sfhomlk3-AN61_tf1PRiUynHdNtoRAg)) to try out Kubetorch on our fully managed serverless platform.
-
-## Learn More
-
-- **[Documentation](https://www.run.house/kubetorch/introduction)** - API Reference, concepts, and guides
-- **[Examples](https://www.run.house/examples)** - Real-world usage patterns and tutorials
-- **[Join our Slack](https://join.slack.com/t/kubetorch/shared_invite/zt-3g76q5i4j-uP60AdydxnAmjGVAQhtALA)** - Connect with the community and get support
+- Kubetorch is not an experiment tracker replacement; it records run evidence
+  and artifact pointers, including external systems like W&B.
+- Kubetorch is not a DAG orchestrator; it favors direct Kubernetes-native batch
+  jobs for many ML training and evaluation workflows.
+- Kubetorch does not make ML deterministic; it captures enough context to
+  understand and compare runs even when results are not reproducible.
 
 ---
 
 [Apache 2.0 License](LICENSE)
 
-**🏃‍♀️ Built by [Runhouse](https://www.run.house) 🏠**
+Originally built by [Runhouse](https://www.run.house).

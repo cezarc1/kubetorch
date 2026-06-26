@@ -1,20 +1,25 @@
 Batch Runs for Agent Operators
 ==============================
 
-Kubetorch batch runs are short-lived Kubernetes Jobs with a durable run record.
-They are meant for training, evaluation, data processing, and experiment
-shakedowns where the source, intent, logs, notes, and artifacts should remain
-inspectable after the container exits.
+Kubetorch batch runs are short-lived Kubernetes Jobs with durable run records.
+They are intended for training, evaluation, data processing, and experiment
+shakedowns where the source, intent, environment, logs, notes, and artifacts
+must remain inspectable after the container exits.
+
+The practical model is closer to a lightweight Slurm-style run history on
+Kubernetes than to a DAG orchestrator. Kubernetes schedules the Pods; Kubetorch
+captures the run evidence that a human or coding agent needs later.
 
 Before submitting
 -----------------
 
 Start by looking at existing runs so the next run is informed by prior source,
-configuration, logs, and findings::
+configuration, logs, artifacts, and findings::
 
    kt runs list --namespace kubetorch
    kt runs show RUN_ID
    kt runs logs RUN_ID
+   kt runs artifact list RUN_ID
 
 Use a short ``--intent`` when submitting. Treat it as the experiment question an
 agent should see later, for example ``"grpo baseline with smaller KL"`` or
@@ -47,7 +52,12 @@ During and after a run
 ----------------------
 
 Use ``kt runs show`` for source keys, sanitized environment, status, notes, and
-artifact references. Use ``kt runs logs`` for persisted stdout/stderr.
+artifact references. Use ``kt runs artifact list RUN_ID`` for a copyable artifact
+URI view.
+
+``kt runs logs RUN_ID`` returns the persisted controller log summary. Long
+stdout/stderr streams are stored under the run-scoped ``logs_key`` in the data
+store and are referenced as ``kt://`` URIs in the log summary.
 
 Inside the run, code can attach findings and result references with the Python
 helpers::
@@ -62,6 +72,19 @@ After the run, an operator can add notes or external references from the CLI::
 
    kt runs note add RUN_ID "Result note: smoke passed; not benchmark-valid" --author agent
    kt runs artifact add RUN_ID --name wandb --uri wandb://entity/project/run-123 --kind wandb
+   kt runs artifact list RUN_ID
+
+Recommended artifacts
+---------------------
+
+For ML training and eval jobs, prefer publishing a small set of stable,
+agent-readable references:
+
+* ``metrics.json`` or ``comparison.json`` for result numbers
+* ``environment.json`` and dataset manifests for reproducibility context
+* checkpoint directory references plus individual checkpoint artifacts
+* external tracker links such as ``wandb://...`` or TensorBoard locations
+* ``issues.md`` or notes for known shortfalls discovered during the run
 
 Cleanup
 -------

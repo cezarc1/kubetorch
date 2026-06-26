@@ -1525,6 +1525,35 @@ def kt_runs_note_add(
     console.print(f"[green]Added note to {run_id}[/green]")
 
 
+@runs_artifact_app.command("list")
+def kt_runs_artifact_list(run_id: str = typer.Argument(..., help="Run id")):
+    """List artifact references registered on a run."""
+    run = globals.controller_client().get_run(run_id)
+    artifacts = run.get("artifacts") or []
+    if not artifacts:
+        console.print(f"No artifacts registered for {run_id}")
+        return
+
+    table = Table(title=f"Artifacts for {run_id}")
+    table.add_column("NAME")
+    table.add_column("KIND")
+    table.add_column("URI", overflow="fold")
+    table.add_column("AUTHOR")
+    table.add_column("CREATED")
+    for artifact in artifacts:
+        table.add_row(
+            artifact.get("name", "") or "",
+            artifact.get("kind", "") or "",
+            artifact.get("uri", "") or "",
+            artifact.get("author", "") or "",
+            artifact.get("created_at", "") or "",
+        )
+    console.print(table)
+    console.print("Full artifact URIs:")
+    for artifact in artifacts:
+        console.print(f"  {artifact.get('name', '')}: {artifact.get('uri', '')}")
+
+
 @runs_artifact_app.command("add")
 def kt_runs_artifact_add(
     run_id: str = typer.Argument(..., help="Run id"),
