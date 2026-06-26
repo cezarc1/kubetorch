@@ -25,14 +25,24 @@ EDGE_LLM_DEPS = (
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run a bounded TensorRT-Edge-LLM Qwen3-ASR quant/export smoke.")
+    parser = argparse.ArgumentParser(
+        description="Run a bounded TensorRT-Edge-LLM Qwen3-ASR quant/export smoke."
+    )
     parser.add_argument("--model-id", default="Qwen/Qwen3-ASR-1.7B")
-    parser.add_argument("--model-cache-dir", type=Path, default=Path("/tmp/qwen3-asr-model"))
+    parser.add_argument(
+        "--model-cache-dir", type=Path, default=Path("/tmp/qwen3-asr-model")
+    )
     parser.add_argument("--no-snapshot-model", action="store_true")
-    parser.add_argument("--output-dir", type=Path, default=Path("results/qwen3-asr-orin/edgellm-quant-export-smoke"))
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("results/qwen3-asr-orin/edgellm-quant-export-smoke"),
+    )
     parser.add_argument("--quantization", default="int8_sq")
     parser.add_argument("--num-samples", type=int, default=2)
-    parser.add_argument("--edge-llm-dir", type=Path, default=Path("/tmp/TensorRT-Edge-LLM"))
+    parser.add_argument(
+        "--edge-llm-dir", type=Path, default=Path("/tmp/TensorRT-Edge-LLM")
+    )
     parser.add_argument("--edge-llm-ref", default=EDGE_LLM_REF)
     parser.add_argument("--quant-timeout-seconds", type=int, default=5400)
     parser.add_argument("--export-timeout-seconds", type=int, default=3600)
@@ -48,8 +58,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     log_dir.mkdir(parents=True, exist_ok=True)
     steps: list[dict[str, object]] = []
 
-    def record_step(name: str, command: list[str], *, timeout: int | None = None, required: bool = True) -> int:
-        result = run_logged(name=name, command=command, log_dir=log_dir, timeout=timeout)
+    def record_step(
+        name: str,
+        command: list[str],
+        *,
+        timeout: int | None = None,
+        required: bool = True,
+    ) -> int:
+        result = run_logged(
+            name=name, command=command, log_dir=log_dir, timeout=timeout
+        )
         steps.append(result)
         write_json(output_dir / "steps.json", steps)
         if required and result["returncode"] != 0:
@@ -72,13 +90,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         record_step("nvidia-smi", ["nvidia-smi"], required=False)
         if not args.keep_torchvision:
-            record_step("pip-uninstall-torchvision", [sys.executable, "-m", "pip", "uninstall", "-y", "torchvision"], required=False)
+            record_step(
+                "pip-uninstall-torchvision",
+                [sys.executable, "-m", "pip", "uninstall", "-y", "torchvision"],
+                required=False,
+            )
         if not args.skip_install:
-            install_edge_llm(edge_llm_dir=args.edge_llm_dir, edge_llm_ref=args.edge_llm_ref, record_step=record_step)
+            install_edge_llm(
+                edge_llm_dir=args.edge_llm_dir,
+                edge_llm_ref=args.edge_llm_ref,
+                record_step=record_step,
+            )
 
         model_dir = args.model_id
         if not args.no_snapshot_model and not Path(args.model_id).exists():
-            model_dir = snapshot_model(args.model_id, args.model_cache_dir, output_dir, steps)
+            model_dir = snapshot_model(
+                args.model_id, args.model_cache_dir, output_dir, steps
+            )
 
         prefix = artifact_prefix(args.model_id, args.quantization)
         quantized_dir = output_dir / prefix
@@ -125,7 +153,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 def artifact_prefix(model_id: str, quantization: str) -> str:
     raw_name = model_id.rstrip("/").split("/")[-1] or "model"
     model_name = re.sub(r"[^A-Za-z0-9_.-]+", "-", raw_name).strip(".-") or "model"
-    quant_name = re.sub(r"[^A-Za-z0-9_.-]+", "-", quantization).strip(".-") or "quantized"
+    quant_name = (
+        re.sub(r"[^A-Za-z0-9_.-]+", "-", quantization).strip(".-") or "quantized"
+    )
     return f"{model_name}-{quant_name}"
 
 
@@ -142,7 +172,9 @@ def artifact_filter_options() -> str | None:
 
 
 def artifact_rsync_exclude_override() -> str:
-    return "--exclude='*.pyc' --exclude='__pycache__' --exclude='.venv' --exclude='.git'"
+    return (
+        "--exclude='*.pyc' --exclude='__pycache__' --exclude='.venv' --exclude='.git'"
+    )
 
 
 @contextlib.contextmanager
@@ -159,7 +191,10 @@ def artifact_upload_filters():
 
 
 def install_edge_llm(edge_llm_dir: Path, edge_llm_ref: str, record_step) -> None:
-    record_step("pip-install-edge-llm-deps", [sys.executable, "-m", "pip", "install", "--quiet", *EDGE_LLM_DEPS])
+    record_step(
+        "pip-install-edge-llm-deps",
+        [sys.executable, "-m", "pip", "install", "--quiet", *EDGE_LLM_DEPS],
+    )
     if edge_llm_dir.exists():
         shutil.rmtree(edge_llm_dir)
     record_step(
@@ -179,11 +214,30 @@ def install_edge_llm(edge_llm_dir: Path, edge_llm_ref: str, record_step) -> None
         ],
         timeout=900,
     )
-    record_step("pip-install-edge-llm", [sys.executable, "-m", "pip", "install", "--quiet", "--no-deps", "-e", str(edge_llm_dir)])
-    record_step("tensorrt-edgellm-quantize-help", ["tensorrt-edgellm-quantize", "--help"])
+    record_step(
+        "pip-install-edge-llm",
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--quiet",
+            "--no-deps",
+            "-e",
+            str(edge_llm_dir),
+        ],
+    )
+    record_step(
+        "tensorrt-edgellm-quantize-help", ["tensorrt-edgellm-quantize", "--help"]
+    )
 
 
-def snapshot_model(model_id: str, model_cache_dir: Path, output_dir: Path, steps: list[dict[str, object]]) -> str:
+def snapshot_model(
+    model_id: str,
+    model_cache_dir: Path,
+    output_dir: Path,
+    steps: list[dict[str, object]],
+) -> str:
     started = time.monotonic()
     print(f"[smoke] snapshotting {model_id} to {model_cache_dir}", flush=True)
     try:
@@ -231,7 +285,9 @@ def run_logged(
     started = time.monotonic()
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / f"{name}.log"
-    effective_command = ["timeout", f"{timeout}s", *command] if timeout is not None else command
+    effective_command = (
+        ["timeout", f"{timeout}s", *command] if timeout is not None else command
+    )
     print(f"[smoke] running {name}: {' '.join(command)}", flush=True)
     with log_path.open("w", encoding="utf-8") as log_file:
         process = subprocess.Popen(
@@ -265,7 +321,10 @@ def run_logged(
         "returncode": returncode,
         "tail": lines[-40:],
     }
-    print(f"[smoke] finished {name}: exit={returncode} duration={elapsed:.1f}s", flush=True)
+    print(
+        f"[smoke] finished {name}: exit={returncode} duration={elapsed:.1f}s",
+        flush=True,
+    )
     return result
 
 
@@ -280,13 +339,21 @@ def upload_result(output_dir: Path) -> None:
 
         key = f"runs/{run_id}/artifacts/qwen3-asr-edgellm-smoke"
         with artifact_upload_filters():
-            kt.put(key=key, src=output_dir, namespace=namespace, force=True, filter_options=artifact_filter_options())
+            kt.put(
+                key=key,
+                src=output_dir,
+                namespace=namespace,
+                force=True,
+                filter_options=artifact_filter_options(),
+            )
         kt.artifact(
             "qwen3-asr-edgellm-smoke",
             uri=f"kt://{namespace}/{key}",
             kind="kt-data-store",
             author="agent",
-            metadata={"source": "examples/qwen3_asr_orin/scripts/edgellm_quant_export_smoke.py"},
+            metadata={
+                "source": "examples/qwen3_asr_orin/scripts/edgellm_quant_export_smoke.py"
+            },
         )
         summary = json.loads((output_dir / "summary.json").read_text(encoding="utf-8"))
         kt.note(
@@ -300,7 +367,9 @@ def upload_result(output_dir: Path) -> None:
 
 def write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 if __name__ == "__main__":

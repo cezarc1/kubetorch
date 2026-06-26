@@ -41,9 +41,8 @@ def put(
     """
     Upload data to the cluster using a key-value store interface.
 
-    Supports two data types (auto-detected from `src`):
-    - **Filesystem data**: Files/directories uploaded via rsync
-    - **GPU data**: GPU tensors or state dicts broadcast via NCCL
+    Supports filesystem data (files/directories uploaded via rsync) and GPU data
+    (GPU tensors or state dicts broadcast via NCCL).
 
     Args:
         key: Storage key(s). Keys should be explicit paths like "my-service/models/v1".
@@ -52,12 +51,10 @@ def put(
             - Path(s) to local file(s) or directory(s) for filesystem transfer
             - GPU tensor for single tensor broadcast via NCCL
             - Dict of GPU tensors (state dict) for multi-tensor broadcast via NCCL
-        locale: Where data is stored:
-            - "store" (default): Copy to central store pod. Data is persisted and
-              accessible from any pod. (Filesystem only - GPU data always uses "local")
-            - "local": Zero-copy mode. Data stays on the local pod and is only
-              registered with the metadata server. Other pods fetch directly from
-              this pod.
+        locale: Where data is stored. Use ``"store"`` to copy filesystem data to
+            the central store pod, or ``"local"`` for zero-copy mode where data
+            remains on the local pod and other pods fetch from it directly. GPU
+            data always uses local transfer.
         broadcast: Optional BroadcastWindow for coordinated multi-party transfers.
             When specified, this put() joins as a "putter" and waits for other
             participants before transferring data.
@@ -70,9 +67,10 @@ def put(
         start_rsyncd: For locale="local": Start rsync daemon to serve data (default: True). (Filesystem only)
         base_path: For locale="local": Root path for rsync daemon (default: "/"). (Filesystem only)
         nccl_port: Port for NCCL communication (default: 29500). (GPU only)
-        nccl_pg_mode: NCCL process group mode (GPU only):
-            - "concurrent" (default): Create ProcessGroupNCCL directly, allows parallel transfers
-            - "global": Use global process group with semaphore serialization
+        nccl_pg_mode: NCCL process group mode for GPU transfers. Use
+            ``"concurrent"`` to create ProcessGroupNCCL directly, or
+            ``"global"`` to use the global process group with semaphore
+            serialization.
 
     Examples:
         # Upload filesystem data to central store
@@ -177,9 +175,10 @@ def get(
         verbose: Show detailed progress.
         namespace: Kubernetes namespace.
         kubeconfig_path: Path to kubeconfig file (for compatibility).
-        nccl_pg_mode: NCCL process group mode (GPU only):
-            - "concurrent" (default): Create ProcessGroupNCCL directly, allows parallel transfers
-            - "global": Use global process group with semaphore serialization
+        nccl_pg_mode: NCCL process group mode for GPU transfers. Use
+            ``"concurrent"`` to create ProcessGroupNCCL directly, or
+            ``"global"`` to use the global process group with semaphore
+            serialization.
 
     Examples:
         # Download from store

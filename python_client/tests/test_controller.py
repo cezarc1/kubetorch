@@ -31,6 +31,50 @@ def test_controller_health():
 
 
 @pytest.mark.level("unit")
+def test_discover_resources_normalizes_typed_buckets(monkeypatch):
+    """Test client compatibility for controller typed discover responses."""
+    controller_client = kt.globals.ControllerClient("http://controller")
+
+    raw_response = {
+        "knative_services": [
+            {
+                "kind": "Service",
+                "metadata": {"name": "serve", "namespace": "kubetorch"},
+            }
+        ],
+        "deployments": [
+            {
+                "metadata": {"name": "train", "namespace": "kubetorch"},
+                "spec": {},
+            }
+        ],
+        "rayclusters": [],
+        "training_jobs": [],
+        "pools": [
+            {
+                "name": "pool-a",
+                "namespace": "kubetorch",
+                "resource_kind": "Deployment",
+                "is_byo": False,
+            }
+        ],
+    }
+
+    monkeypatch.setattr(controller_client, "get", lambda *args, **kwargs: raw_response)
+
+    result = controller_client.discover_resources(namespace="kubetorch")
+
+    assert result["deployments"] == raw_response["deployments"]
+    assert [workload["name"] for workload in result["workloads"]] == ["serve", "train", "pool-a"]
+    assert result["workloads"][0]["namespace"] == "kubetorch"
+    assert result["workloads"][0]["kind"] == "KnativeService"
+    assert result["workloads"][0]["resource_kind"] == "KnativeService"
+    assert result["workloads"][1]["kind"] == "Deployment"
+    assert result["workloads"][1]["resource_kind"] == "Deployment"
+    assert result["workloads"][2]["kind"] == "Deployment"
+
+
+@pytest.mark.level("unit")
 def test_volume_create_and_delete():
     """Test creating and deleting a volume through the controller"""
     volume_name = "test-controller-vol"

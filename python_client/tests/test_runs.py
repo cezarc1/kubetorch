@@ -662,8 +662,12 @@ def test_run_wrapper_syncs_workdir_persists_logs_and_status(monkeypatch, tmp_pat
         calls.append(("get", key, str(dest), contents, namespace))
         (tmp_path / "train.py").write_text("print('from synced source')\n")
 
+    def fake_put(key, src, namespace=None, force=False):
+        calls.append(("put", key, namespace, Path(src).read_text()))
+
     monkeypatch.setattr(run_wrapper, "controller_client", lambda: FakeController())
     monkeypatch.setattr(run_wrapper, "kt_get", fake_get)
+    monkeypatch.setattr(run_wrapper, "kt_put", fake_put)
 
     exit_code = run_wrapper.run_wrapped_command(
         ["python", "train.py"],
@@ -671,6 +675,7 @@ def test_run_wrapper_syncs_workdir_persists_logs_and_status(monkeypatch, tmp_pat
             "KT_RUN_ID": "run-wrapper",
             "KT_NAMESPACE": "kubetorch",
             "KT_WORKDIR_KEY": "runs/run-wrapper/workdir",
+            "KT_LOGS_KEY": "runs/run-wrapper/logs/stdout.log",
         },
         workdir=tmp_path,
     )
@@ -678,6 +683,82 @@ def test_run_wrapper_syncs_workdir_persists_logs_and_status(monkeypatch, tmp_pat
     assert exit_code == 0
     assert calls[0] == ("get", "runs/run-wrapper/workdir", str(tmp_path), True, "kubetorch")
     assert calls[1] == ("status", "run-wrapper", "running", None)
-    assert calls[2][0:2] == ("logs", "run-wrapper")
-    assert "from synced source" in calls[2][2]
-    assert calls[3] == ("status", "run-wrapper", "succeeded", 0)
+    assert calls[2][0:3] == ("put", "runs/run-wrapper/logs/stdout.log", "kubetorch")
+    assert calls[3][0:2] == ("logs", "run-wrapper")
+    assert "from synced source" in calls[3][2]
+    assert "kt://kubetorch/runs/run-wrapper/logs/stdout.log" in calls[3][2]
+    assert calls[4] == ("status", "run-wrapper", "succeeded", 0)
+
+
+@pytest.mark.level("unit")
+def test_run_wrapper_keeps_success_when_controller_log_upload_is_too_large(monkeypatch, tmp_path):
+    from kubetorch import run_wrapper
+
+    calls = []
+
+    class FakeController:
+        def update_run_status(self, run_id, status, exit_code=None):
+            calls.append(("status", status, exit_code))
+            return {"run_id": run_id, "status": status}
+
+        def put_run_logs(self, run_id, logs):
+            calls.append(("logs", len(logs)))
+            raise RuntimeError("413 Request Entity Too Large")
+
+    def fake_put(key, src, namespace=None, force=False):
+        calls.append(("put", key, namespace, Path(src).read_text()))
+
+    monkeypatch.setattr(run_wrapper, "controller_client", lambda: FakeController())
+    monkeypatch.setattr(run_wrapper, "kt_get", lambda *args, **kwargs: None)
+    monkeypatch.setattr(run_wrapper, "kt_put", fake_put)
+
+    script = tmp_path / "ok.py"
+    script.write_text("print('training reached final eval')\n")
+
+    exit_code = run_wrapper.run_wrapped_command(
+        ["python", str(script)],
+        env={
+            "KT_RUN_ID": "run-big-log",
+            "KT_NAMESPACE": "kubetorch",
+            "KT_LOGS_KEY": "runs/run-big-log/logs/stdout.log",
+        },
+        workdir=tmp_path,
+    )
+
+    assert exit_code == 0
+    assert ("status", "running", None) in calls
+    assert ("status", "succeeded", 0) in calls
+    assert any(call[0] == "logs" for call in calls)
+    assert any(call[0] == "put" and "training reached final eval" in call[3] for call in calls)
+
+
+@pytest.mark.level("unit")
+def test_cli_runs_artifact_list_shows_registered_artifacts(monkeypatch):
+    from kubetorch import cli
+
+    class FakeController:
+        def get_run(self, run_id):
+            return {
+                "run_id": run_id,
+                "artifacts": [
+                    {
+                        "name": "checkpoint-00005000",
+                        "uri": "kt://kubetorch/experiments/run/checkpoint.bin",
+                        "kind": "checkpoint",
+                    },
+                    {
+                        "name": "wandb",
+                        "uri": "wandb://entity/project/run",
+                        "kind": "wandb",
+                    },
+                ],
+            }
+
+    monkeypatch.setattr(cli.globals, "controller_client", lambda: FakeController())
+
+    result = runner.invoke(cli.app, ["runs", "artifact", "list", "run-with-artifacts"], color=False)
+
+    assert result.exit_code == 0, result.output
+    assert "checkpoint-00005000" in result.output
+    assert "kt://kubetorch/experiments/run/checkpoint.bin" in result.output
+    assert "wandb://entity/project/run" in result.output

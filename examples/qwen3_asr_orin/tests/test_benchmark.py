@@ -35,7 +35,9 @@ def test_summarize_samples_reports_latency_rtf_throughput_and_errors():
         ),
     ]
 
-    summary = summarize_samples(samples, wall_seconds=3.0, model="qwen3-asr", runtime="sglang", precision="fp16")
+    summary = summarize_samples(
+        samples, wall_seconds=3.0, model="qwen3-asr", runtime="sglang", precision="fp16"
+    )
 
     assert summary["model"] == "qwen3-asr"
     assert summary["runtime"] == "sglang"

@@ -366,6 +366,58 @@ async def service_url_async(
 atexit.register(_cleanup_port_forwards)
 
 
+DISCOVER_WORKLOAD_BUCKET_KINDS = {
+    "knative_services": "KnativeService",
+    "deployments": "Deployment",
+    "rayclusters": "RayCluster",
+    "training_jobs": "TrainingJob",
+    "pools": None,
+}
+
+
+def _resource_metadata(resource: Dict[str, Any]) -> Dict[str, Any]:
+    metadata = resource.get("metadata")
+    return metadata if isinstance(metadata, dict) else {}
+
+
+def _resource_name(resource: Dict[str, Any]) -> str:
+    return str(resource.get("name") or _resource_metadata(resource).get("name") or "")
+
+
+def _resource_namespace(resource: Dict[str, Any]) -> str:
+    return str(resource.get("namespace") or _resource_metadata(resource).get("namespace") or "")
+
+
+def _normalize_discovered_workload(resource: Dict[str, Any], default_kind: Optional[str]) -> Dict[str, Any]:
+    workload = dict(resource)
+    raw_kind = workload.get("kind")
+    if default_kind == "TrainingJob" and raw_kind:
+        resource_kind = workload.get("resource_kind") or raw_kind
+    else:
+        resource_kind = workload.get("resource_kind") or default_kind or raw_kind
+    workload.setdefault("name", _resource_name(resource))
+    workload.setdefault("namespace", _resource_namespace(resource))
+    if resource_kind:
+        workload["kind"] = resource_kind
+        workload["resource_kind"] = resource_kind
+    return workload
+
+
+def _with_discovered_workloads(resources: Dict[str, Any]) -> Dict[str, Any]:
+    if "workloads" in resources:
+        return resources
+
+    workloads = []
+    for bucket, default_kind in DISCOVER_WORKLOAD_BUCKET_KINDS.items():
+        for resource in resources.get(bucket, []) or []:
+            if isinstance(resource, dict):
+                workloads.append(_normalize_discovered_workload(resource, default_kind))
+
+    result = dict(resources)
+    result["workloads"] = workloads
+    return result
+
+
 # ----------------------------------------------------------------------
 # Controller Client
 # ----------------------------------------------------------------------
@@ -967,7 +1019,8 @@ class ControllerClient:
             "include_pods": include_pods,
         }
         params = {k: v for k, v in params.items() if v}
-        return self.get(f"/controller/discover/{namespace}", params=params or None)
+        resources = self.get(f"/controller/discover/{namespace}", params=params or None)
+        return _with_discovered_workloads(resources)
 
 
 @cache

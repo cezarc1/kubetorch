@@ -60,10 +60,6 @@ Locale
 
 .. autodata:: kubetorch.data_store.types.Locale
 
-Lifespan
-^^^^^^^^
-
-.. autodata:: kubetorch.data_store.types.Lifespan
 
 CLI Commands
 ------------

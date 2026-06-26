@@ -77,7 +77,7 @@ and accessible during the scope of your program.
    python/secret
 
 Kubetorch Config
-------
+-----------------
 
 Kubetorch uses a local configuration file (stored at ``~/.kt/config.yaml``) to allow you to set global defaults for
 your services. You can update the config file manually, use the ``kt config`` command, or set them as environment variables.
@@ -112,7 +112,7 @@ It supports both filesystem data (files/directories via rsync) and GPU data (ten
    python/data_store
 
 Workload Configs
--------
+----------------
 Kubetorch provides several observability and debugging features to help monitor and troubleshoot your workloads. The behavior of these features can be fully customized via their respective configurations, allowing you to adjust their settings accordingly:
 
 * `Metrics streaming <https://www.run.house/kubetorch/concepts/monitoring-and-observability#metrics-streaming>`_ : Collects and streams runtime metrics from your workloads.

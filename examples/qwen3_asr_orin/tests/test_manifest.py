@@ -54,7 +54,9 @@ def test_write_manifest_sorts_examples_and_preserves_required_fields(tmp_path: P
         "transcript": "bonjour orin",
         "duration_seconds": 2.5,
     }
-    assert load_manifest(manifest_path) == sorted(examples, key=lambda example: example.id)
+    assert load_manifest(manifest_path) == sorted(
+        examples, key=lambda example: example.id
+    )
 
 
 def test_audio_example_rejects_non_positive_duration():
@@ -74,7 +76,9 @@ def test_audio_example_rejects_non_positive_duration():
         raise AssertionError("AudioExample accepted a zero-duration sample")
 
 
-def test_prepare_public_manifest_copies_audio_paths_without_decoding(monkeypatch, tmp_path: Path):
+def test_prepare_public_manifest_copies_audio_paths_without_decoding(
+    monkeypatch, tmp_path: Path
+):
     source_audio = tmp_path / "source.wav"
     source_audio.write_bytes(b"audio")
 
@@ -89,15 +93,28 @@ def test_prepare_public_manifest_copies_audio_paths_without_decoding(monkeypatch
     def fake_load_dataset(dataset_id, config, split, streaming):
         calls.append((dataset_id, config, split, streaming))
         if dataset_id == LIBRISPEECH_DATASET_ID:
-            return FakeDataset([{"audio": {"path": str(source_audio)}, "text": "hello"}])
-        return FakeDataset([{"audio": {"path": "streamed.flac", "bytes": b"audio"}, "transcription": "hola"}])
+            return FakeDataset(
+                [{"audio": {"path": str(source_audio)}, "text": "hello"}]
+            )
+        return FakeDataset(
+            [
+                {
+                    "audio": {"path": "streamed.flac", "bytes": b"audio"},
+                    "transcription": "hola",
+                }
+            ]
+        )
 
     class FakeAudio:
         def __init__(self, decode):
             self.decode = decode
 
-    fake_datasets = types.SimpleNamespace(load_dataset=fake_load_dataset, Audio=FakeAudio)
-    fake_soundfile = types.SimpleNamespace(info=lambda path: types.SimpleNamespace(duration=1.5))
+    fake_datasets = types.SimpleNamespace(
+        load_dataset=fake_load_dataset, Audio=FakeAudio
+    )
+    fake_soundfile = types.SimpleNamespace(
+        info=lambda path: types.SimpleNamespace(duration=1.5)
+    )
     monkeypatch.setitem(sys.modules, "datasets", fake_datasets)
     monkeypatch.setitem(sys.modules, "soundfile", fake_soundfile)
 

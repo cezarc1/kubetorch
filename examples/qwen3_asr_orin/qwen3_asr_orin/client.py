@@ -26,16 +26,22 @@ class TranscriptionClient:
         self.model = model
         self.http_client = http_client or httpx.Client(timeout=timeout_seconds)
 
-    def transcribe(self, audio_path: Path, response_format: str = "json") -> TranscriptionResult:
+    def transcribe(
+        self, audio_path: Path, response_format: str = "json"
+    ) -> TranscriptionResult:
         with audio_path.open("rb") as audio_file:
             response = self.http_client.post(
                 f"{self.base_url}/audio/transcriptions",
                 data={"model": self.model, "response_format": response_format},
-                files={"file": (audio_path.name, audio_file, _content_type(audio_path))},
+                files={
+                    "file": (audio_path.name, audio_file, _content_type(audio_path))
+                },
             )
 
         if response.status_code >= 400:
-            raise RuntimeError(f"transcription failed with HTTP {response.status_code}: {_response_body(response)}")
+            raise RuntimeError(
+                f"transcription failed with HTTP {response.status_code}: {_response_body(response)}"
+            )
 
         if response_format == "text":
             return TranscriptionResult(text=response.text, raw=response.text)
