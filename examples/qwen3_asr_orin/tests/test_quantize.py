@@ -4,8 +4,8 @@ from pathlib import Path
 import qwen3_asr_orin.quantize as quantize
 from qwen3_asr_orin.datasets import AudioExample, load_manifest, write_manifest
 from qwen3_asr_orin.quantize import (
-    QuantizationSpec,
     int8_smoothquant_config,
+    QuantizationSpec,
     write_quantization_spec,
 )
 
@@ -14,12 +14,16 @@ def test_int8_smoothquant_config_preserves_audio_and_lm_head_modules():
     config = int8_smoothquant_config()
 
     assert config["algorithm"] == "smoothquant"
-    assert {"quantizer_name": "*weight_quantizer", "enable": True, "cfg": {"num_bits": 8, "axis": 0}} in config[
-        "quant_cfg"
-    ]
-    assert {"quantizer_name": "*input_quantizer", "enable": True, "cfg": {"num_bits": 8, "axis": None}} in config[
-        "quant_cfg"
-    ]
+    assert {
+        "quantizer_name": "*weight_quantizer",
+        "enable": True,
+        "cfg": {"num_bits": 8, "axis": 0},
+    } in config["quant_cfg"]
+    assert {
+        "quantizer_name": "*input_quantizer",
+        "enable": True,
+        "cfg": {"num_bits": 8, "axis": None},
+    } in config["quant_cfg"]
     assert {"quantizer_name": "*audio_tower*", "enable": False} in config["quant_cfg"]
     assert {"quantizer_name": "*lm_head*", "enable": False} in config["quant_cfg"]
 
@@ -40,7 +44,9 @@ def test_write_quantization_spec_records_reproducible_inputs(tmp_path: Path):
     assert payload["modelopt_config"]["algorithm"] == "smoothquant"
 
 
-def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_path: Path):
+def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(
+    tmp_path: Path,
+):
     audio_dir = tmp_path / "source-audio"
     audio_dir.mkdir()
     first_audio = audio_dir / "sample-one.wav"
@@ -88,7 +94,9 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     bundled_manifest = load_manifest(tmp_path / "bundle/manifest.jsonl")
     assert bundled_manifest[0].audio_path == "/work/bundle/audio/sample-one.wav"
     assert bundled_manifest[1].audio_path == "/work/bundle/audio/sample-two.wav"
-    assert (tmp_path / "bundle/prompts.txt").read_text() == "sample-one\thello orin\nsample-two\tbonjour orin\n"
+    assert (
+        tmp_path / "bundle/prompts.txt"
+    ).read_text() == "sample-one\thello orin\nsample-two\tbonjour orin\n"
     benchmark_script = tmp_path / "bundle/scripts/qwen3_asr_edgellm_benchmark.py"
     hosttrt_runner = tmp_path / "bundle/scripts/run_jetson_hosttrt_pipeline.sh"
     assert benchmark_script.exists()
@@ -156,8 +164,13 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     assert pipeline["runtime_requirements"]["tensorrt_version"] == "10.16.2.10"
     assert pipeline["runtime_requirements"]["temp_swap_gib"] == 16
     assert pipeline["runtime_requirements"]["kubernetes"]["runtime_class_name"] is None
-    assert pipeline["runner"]["jetson_hosttrt"] == "/work/bundle/scripts/run_jetson_hosttrt_pipeline.sh"
-    assert pipeline["runner"]["local_jetson_hosttrt"].endswith("run_jetson_hosttrt_pipeline.sh")
+    assert (
+        pipeline["runner"]["jetson_hosttrt"]
+        == "/work/bundle/scripts/run_jetson_hosttrt_pipeline.sh"
+    )
+    assert pipeline["runner"]["local_jetson_hosttrt"].endswith(
+        "run_jetson_hosttrt_pipeline.sh"
+    )
     assert "tensorrt-edgellm-quantize llm" in pipeline["stages"][0]["command"]
     assert "--quantization int8_sq" in pipeline["stages"][0]["command"]
     assert "tensorrt-edgellm-export" in pipeline["stages"][1]["command"]
@@ -166,7 +179,10 @@ def test_export_trt_edgellm_bundle_materializes_audio_prompts_and_pipeline(tmp_p
     assert "--minTimeSteps 100 " in pipeline["stages"][3]["command"]
     assert "tensorrt-edgellm-preprocess-audio" in pipeline["stages"][4]["command"]
     assert "/work/bundle/audio" in pipeline["stages"][4]["command"]
-    assert "/work/bundle/scripts/qwen3_asr_edgellm_benchmark.py" in pipeline["stages"][-1]["command"]
+    assert (
+        "/work/bundle/scripts/qwen3_asr_edgellm_benchmark.py"
+        in pipeline["stages"][-1]["command"]
+    )
     assert "--manifest" in pipeline["stages"][-1]["command"]
     assert "llm_inference" in pipeline["stages"][-1]["command"]
     assert "--strip-hypothesis-prefix-regex" in pipeline["stages"][-1]["command"]
@@ -204,9 +220,16 @@ def test_export_trt_edgellm_bundle_uses_model_specific_artifact_names(tmp_path: 
 
     pipeline = json.loads((tmp_path / "bundle/pipeline.json").read_text())
     assert pipeline["quantization"]["model_name"] == "Qwen3-ASR-0.6B"
-    assert pipeline["quantization"]["quantized_dir"] == "/work/bundle/Qwen3-ASR-0.6B-int8"
-    assert pipeline["quantization"]["onnx_dir"] == "/work/bundle/Qwen3-ASR-0.6B-int8-ONNX"
-    assert pipeline["quantization"]["engine_dir"] == "/work/bundle/Qwen3-ASR-0.6B-int8-Engines"
+    assert (
+        pipeline["quantization"]["quantized_dir"] == "/work/bundle/Qwen3-ASR-0.6B-int8"
+    )
+    assert (
+        pipeline["quantization"]["onnx_dir"] == "/work/bundle/Qwen3-ASR-0.6B-int8-ONNX"
+    )
+    assert (
+        pipeline["quantization"]["engine_dir"]
+        == "/work/bundle/Qwen3-ASR-0.6B-int8-Engines"
+    )
     assert pipeline["stages"][0]["command"].startswith(
         "tensorrt-edgellm-quantize llm --model_dir Qwen/Qwen3-ASR-0.6B "
     )
@@ -244,8 +267,13 @@ def test_export_trt_edgellm_bundle_can_generate_fp16_pipeline(tmp_path: Path):
     stage_names = [stage["name"] for stage in pipeline["stages"]]
     assert pipeline["quantization"]["format"] == "fp16"
     assert pipeline["quantization"]["method"] == "fp16"
-    assert pipeline["quantization"]["onnx_dir"] == "/work/bundle/Qwen3-ASR-0.6B-fp16-ONNX"
-    assert pipeline["quantization"]["engine_dir"] == "/work/bundle/Qwen3-ASR-0.6B-fp16-Engines"
+    assert (
+        pipeline["quantization"]["onnx_dir"] == "/work/bundle/Qwen3-ASR-0.6B-fp16-ONNX"
+    )
+    assert (
+        pipeline["quantization"]["engine_dir"]
+        == "/work/bundle/Qwen3-ASR-0.6B-fp16-Engines"
+    )
     assert "quantize" not in stage_names
     assert stage_names[0] == "export-onnx"
     assert pipeline["stages"][0]["command"] == (

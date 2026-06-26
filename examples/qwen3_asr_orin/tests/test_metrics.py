@@ -2,7 +2,10 @@ from qwen3_asr_orin.metrics import normalize_transcript, word_error_rate
 
 
 def test_normalize_transcript_lowercases_punctuation_and_whitespace():
-    assert normalize_transcript("  Hello,   Orin!\nThis is Qwen-3.  ") == "hello orin this is qwen 3"
+    assert (
+        normalize_transcript("  Hello,   Orin!\nThis is Qwen-3.  ")
+        == "hello orin this is qwen 3"
+    )
 
 
 def test_word_error_rate_handles_insertions_deletions_and_substitutions():

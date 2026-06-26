@@ -5,8 +5,7 @@ import tempfile
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-from kubetorch.data_store import get as kt_get
-from kubetorch.data_store import put as kt_put
+from kubetorch.data_store import get as kt_get, put as kt_put
 from kubetorch.globals import controller_client
 
 DEFAULT_CONTROLLER_LOG_MAX_CHARS = 200_000

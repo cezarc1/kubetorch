@@ -4,7 +4,9 @@ from pathlib import Path
 from qwen3_asr_orin.edgellm_results import rescore_samples_file
 
 
-def test_rescore_samples_file_preserves_latency_and_keeps_first_word_after_language_prefix(tmp_path: Path):
+def test_rescore_samples_file_preserves_latency_and_keeps_first_word_after_language_prefix(
+    tmp_path: Path,
+):
     samples_path = tmp_path / "samples.jsonl"
     samples_path.write_text(
         "\n".join(
@@ -39,7 +41,9 @@ def test_rescore_samples_file_preserves_latency_and_keeps_first_word_after_langu
 
     rescored_rows = [
         json.loads(line)
-        for line in (tmp_path / "rescored" / "samples.jsonl").read_text(encoding="utf-8").splitlines()
+        for line in (tmp_path / "rescored" / "samples.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
     ]
     assert rescored_rows[0]["scored_hypothesis"] == "When you call someone."
     assert rescored_rows[0]["wer"] == 0.0

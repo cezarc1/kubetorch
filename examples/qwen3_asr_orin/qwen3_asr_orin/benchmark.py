@@ -4,7 +4,7 @@ import json
 import platform
 import statistics
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed, ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
@@ -38,7 +38,9 @@ def summarize_samples(
     errored = [sample for sample in sample_list if sample.error is not None]
     latencies = [sample.latency_seconds for sample in completed]
     rtfs = [sample.latency_seconds / sample.duration_seconds for sample in completed]
-    wers = [word_error_rate(sample.reference, sample.transcript) for sample in completed]
+    wers = [
+        word_error_rate(sample.reference, sample.transcript) for sample in completed
+    ]
     audio_seconds_completed = sum(sample.duration_seconds for sample in completed)
 
     return {
@@ -53,8 +55,12 @@ def summarize_samples(
         },
         "wall_seconds": wall_seconds,
         "audio_seconds_completed": audio_seconds_completed,
-        "completed_requests_per_second": len(completed) / wall_seconds if wall_seconds else 0.0,
-        "throughput_audio_seconds_per_second": audio_seconds_completed / wall_seconds if wall_seconds else 0.0,
+        "completed_requests_per_second": len(completed) / wall_seconds
+        if wall_seconds
+        else 0.0,
+        "throughput_audio_seconds_per_second": audio_seconds_completed / wall_seconds
+        if wall_seconds
+        else 0.0,
         "latency_seconds": _percentiles(latencies),
         "rtf": {
             "mean": statistics.fmean(rtfs) if rtfs else 0.0,
@@ -85,16 +91,29 @@ def run_benchmark(
         examples = examples[:limit]
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    client = TranscriptionClient(base_url=base_url, model=model, timeout_seconds=timeout_seconds)
+    client = TranscriptionClient(
+        base_url=base_url, model=model, timeout_seconds=timeout_seconds
+    )
     started = time.perf_counter()
     samples = _transcribe_examples(client, examples, concurrency=concurrency)
     wall_seconds = time.perf_counter() - started
-    summary = summarize_samples(samples, wall_seconds=wall_seconds, model=model, runtime=runtime, precision=precision)
+    summary = summarize_samples(
+        samples,
+        wall_seconds=wall_seconds,
+        model=model,
+        runtime=runtime,
+        precision=precision,
+    )
 
     _write_jsonl(output_dir / "samples.jsonl", (asdict(sample) for sample in samples))
-    (output_dir / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    (output_dir / "summary.json").write_text(
+        json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     (output_dir / "environment.json").write_text(
-        json.dumps(_environment(runtime=runtime, precision=precision), indent=2, sort_keys=True) + "\n",
+        json.dumps(
+            _environment(runtime=runtime, precision=precision), indent=2, sort_keys=True
+        )
+        + "\n",
         encoding="utf-8",
     )
     return summary
@@ -109,12 +128,17 @@ def _transcribe_examples(
         raise ValueError("concurrency must be >= 1")
 
     with ThreadPoolExecutor(max_workers=concurrency) as executor:
-        futures = {executor.submit(_transcribe_one, client, example): example.id for example in examples}
+        futures = {
+            executor.submit(_transcribe_one, client, example): example.id
+            for example in examples
+        }
         samples = [future.result() for future in as_completed(futures)]
     return sorted(samples, key=lambda sample: sample.id)
 
 
-def _transcribe_one(client: TranscriptionClient, example: AudioExample) -> BenchmarkSample:
+def _transcribe_one(
+    client: TranscriptionClient, example: AudioExample
+) -> BenchmarkSample:
     started = time.perf_counter()
     transcript = ""
     error = None

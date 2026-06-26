@@ -47,11 +47,15 @@ def load_manifest(manifest_path: Path) -> list[AudioExample]:
             try:
                 examples.append(AudioExample(**json.loads(line)))
             except (TypeError, ValueError, json.JSONDecodeError) as exc:
-                raise ValueError(f"Invalid manifest row {line_number} in {manifest_path}: {exc}") from exc
+                raise ValueError(
+                    f"Invalid manifest row {line_number} in {manifest_path}: {exc}"
+                ) from exc
     return examples
 
 
-def _copy_encoded_audio(audio: object, audio_dir: Path, stem: str, soundfile_module: object) -> tuple[Path, float]:
+def _copy_encoded_audio(
+    audio: object, audio_dir: Path, stem: str, soundfile_module: object
+) -> tuple[Path, float]:
     if not isinstance(audio, dict):
         raise ValueError("Expected a decoded-disabled datasets audio row")
 
@@ -59,7 +63,9 @@ def _copy_encoded_audio(audio: object, audio_dir: Path, stem: str, soundfile_mod
     source_path = Path(str(source)) if source else None
     encoded_bytes = audio.get("bytes")
     if source_path is None and not isinstance(encoded_bytes, bytes):
-        raise ValueError("Expected a decoded-disabled datasets audio row with a local path or encoded bytes")
+        raise ValueError(
+            "Expected a decoded-disabled datasets audio row with a local path or encoded bytes"
+        )
 
     suffix = source_path.suffix if source_path is not None else ".wav"
     suffix = suffix or ".wav"
@@ -85,18 +91,22 @@ def prepare_public_manifest(
     This function imports heavy dataset/audio dependencies lazily so unit tests
     and summary analysis stay fast.
     """
-    from datasets import Audio, load_dataset
     import soundfile as sf
+    from datasets import Audio, load_dataset
 
     audio_dir = output_dir / "audio"
     audio_dir.mkdir(parents=True, exist_ok=True)
     examples: list[AudioExample] = []
 
-    librispeech = load_dataset(LIBRISPEECH_DATASET_ID, "clean", split="validation", streaming=True)
+    librispeech = load_dataset(
+        LIBRISPEECH_DATASET_ID, "clean", split="validation", streaming=True
+    )
     librispeech = librispeech.cast_column("audio", Audio(decode=False))
     for index, row in enumerate(islice(librispeech, librispeech_count)):
         example_id = f"librispeech-dev-clean-{index:04d}"
-        audio_path, duration_seconds = _copy_encoded_audio(row["audio"], audio_dir, example_id, sf)
+        audio_path, duration_seconds = _copy_encoded_audio(
+            row["audio"], audio_dir, example_id, sf
+        )
         examples.append(
             AudioExample(
                 id=example_id,
@@ -110,11 +120,15 @@ def prepare_public_manifest(
         )
 
     for language in fleurs_languages:
-        fleurs = load_dataset(FLEURS_DATASET_ID, language, split="validation", streaming=True)
+        fleurs = load_dataset(
+            FLEURS_DATASET_ID, language, split="validation", streaming=True
+        )
         fleurs = fleurs.cast_column("audio", Audio(decode=False))
         for index, row in enumerate(islice(fleurs, fleurs_count_per_language)):
             example_id = f"fleurs-{language}-{index:04d}"
-            audio_path, duration_seconds = _copy_encoded_audio(row["audio"], audio_dir, example_id, sf)
+            audio_path, duration_seconds = _copy_encoded_audio(
+                row["audio"], audio_dir, example_id, sf
+            )
             examples.append(
                 AudioExample(
                     id=example_id,

@@ -39,13 +39,25 @@ class TrtEdgeLlmBundle:
     sample_count: int
 
 
-def int8_smoothquant_config(preserved_patterns: tuple[str, ...] = ("*audio*", "*audio_tower*", "*lm_head*")) -> dict:
+def int8_smoothquant_config(
+    preserved_patterns: tuple[str, ...] = ("*audio*", "*audio_tower*", "*lm_head*")
+) -> dict:
     quant_cfg = [
         {"quantizer_name": "*", "enable": False},
-        {"quantizer_name": "*weight_quantizer", "enable": True, "cfg": {"num_bits": 8, "axis": 0}},
-        {"quantizer_name": "*input_quantizer", "enable": True, "cfg": {"num_bits": 8, "axis": None}},
+        {
+            "quantizer_name": "*weight_quantizer",
+            "enable": True,
+            "cfg": {"num_bits": 8, "axis": 0},
+        },
+        {
+            "quantizer_name": "*input_quantizer",
+            "enable": True,
+            "cfg": {"num_bits": 8, "axis": None},
+        },
     ]
-    quant_cfg.extend({"quantizer_name": pattern, "enable": False} for pattern in preserved_patterns)
+    quant_cfg.extend(
+        {"quantizer_name": pattern, "enable": False} for pattern in preserved_patterns
+    )
     return {"algorithm": "smoothquant", "quant_cfg": quant_cfg}
 
 
@@ -54,7 +66,9 @@ def write_quantization_spec(spec: QuantizationSpec, output_dir: Path) -> Path:
     spec_path = output_dir / "quantization-spec.json"
     payload = asdict(spec)
     payload["modelopt_config"] = int8_smoothquant_config(spec.preserved_modules)
-    spec_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    spec_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return spec_path
 
 
@@ -126,7 +140,9 @@ def export_trt_edgellm_bundle(
     hosttrt_runner_path = output_dir / "scripts" / "run_jetson_hosttrt_pipeline.sh"
     write_manifest(bundled_examples, bundled_manifest_path)
     prompts_path.write_text(
-        "".join(f"{example.id}\t{example.transcript}\n" for example in bundled_examples),
+        "".join(
+            f"{example.id}\t{example.transcript}\n" for example in bundled_examples
+        ),
         encoding="utf-8",
     )
     _write_edgellm_benchmark_script(benchmark_script_path)
@@ -215,8 +231,12 @@ def _trt_edgellm_pipeline(
     result_dir = runtime_dir / f"results-{quant_format}"
     runtime_prompts_path = runtime_dir / "prompts.txt"
     runtime_manifest_path = runtime_dir / "manifest.jsonl"
-    runtime_benchmark_script_path = runtime_dir / "scripts" / "qwen3_asr_edgellm_benchmark.py"
-    runtime_hosttrt_runner_path = runtime_dir / "scripts" / "run_jetson_hosttrt_pipeline.sh"
+    runtime_benchmark_script_path = (
+        runtime_dir / "scripts" / "qwen3_asr_edgellm_benchmark.py"
+    )
+    runtime_hosttrt_runner_path = (
+        runtime_dir / "scripts" / "run_jetson_hosttrt_pipeline.sh"
+    )
     return {
         "quantization": {
             "format": quant_format,
@@ -244,7 +264,13 @@ def _trt_edgellm_pipeline(
             "temp_swap_gib": temp_swap_gib,
             "kubernetes": {
                 "node_selector": {"accelerator": "nvidia-jetson-orin-nano"},
-                "tolerations": [{"key": "nvidia.com/gpu", "operator": "Exists", "effect": "NoSchedule"}],
+                "tolerations": [
+                    {
+                        "key": "nvidia.com/gpu",
+                        "operator": "Exists",
+                        "effect": "NoSchedule",
+                    }
+                ],
                 "gpu_limit": {"nvidia.com/gpu": 1},
                 "runtime_class_name": None,
                 "runtime_note": "Jetson K3s agent uses Docker with NVIDIA as the default runtime.",
@@ -352,7 +378,7 @@ def _trt_edgellm_stages(
                     "mkdir -p "
                     f"{runtime_dir}/preprocessed-audio && "
                     "while IFS=$'\\t' read -r sample_id _; do "
-                    f"audio_file=$(find {runtime_audio_dir} -maxdepth 1 -type f -name \"$sample_id.*\" -print -quit); "
+                    f'audio_file=$(find {runtime_audio_dir} -maxdepth 1 -type f -name "$sample_id.*" -print -quit); '
                     'test -n "$audio_file"; '
                     'tensorrt-edgellm-preprocess-audio --input "$audio_file" '
                     f"--output {runtime_dir}/preprocessed-audio/$sample_id.safetensors; "
@@ -401,7 +427,7 @@ def _write_jetson_hosttrt_runner_script(path: Path) -> None:
     path.chmod(0o755)
 
 
-_JETSON_HOSTTRT_RUNNER_SCRIPT = r'''#!/usr/bin/env bash
+_JETSON_HOSTTRT_RUNNER_SCRIPT = r"""#!/usr/bin/env bash
 set -euo pipefail
 
 PIPELINE_JSON="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/pipeline.json}"
@@ -634,10 +660,10 @@ run_stage preprocess-audio
 run_stage benchmark-nano
 
 echo "hosttrt logs: ${LOG_DIR}"
-'''
+"""
 
 
-_EDGELLM_BENCHMARK_SCRIPT = r'''#!/usr/bin/env python3
+_EDGELLM_BENCHMARK_SCRIPT = r"""#!/usr/bin/env python3
 from __future__ import annotations
 
 import argparse
@@ -885,4 +911,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-'''
+"""
