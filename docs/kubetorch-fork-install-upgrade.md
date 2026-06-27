@@ -34,9 +34,10 @@ For private GHCR images, configure an image pull secret and pass it through
 
 ## Upgrade Notes
 
-- The controller Deployment uses `strategy.type: Recreate` because it mounts the
-  RWO `kubetorch-controller-data` PVC. Do not switch it back to RollingUpdate
-  unless the storage model changes.
+- The controller Deployment uses a delete-before-create rolling strategy
+  (`maxSurge: 0`, `maxUnavailable: 1`) because it mounts the RWO
+  `kubetorch-controller-data` PVC. Do not allow surge replicas unless the
+  storage model changes.
 - Avoid `--rollback-on-failure` for PVC-bearing upgrades. A failed rollback can
   compound PVC termination and mount state.
 - If Helm hits a server-side apply ownership conflict on a resource previously

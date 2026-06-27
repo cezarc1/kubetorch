@@ -313,7 +313,9 @@ def test_controller_chart_persists_sqlite_database():
 
     assert "mountPath: /data" in deployment_yaml
     assert "name: controller-data" in deployment_yaml
-    assert "type: Recreate" in deployment_yaml
+    assert "type: RollingUpdate" in deployment_yaml
+    assert "maxSurge: 0" in deployment_yaml
+    assert "maxUnavailable: 1" in deployment_yaml
     assert "kind: PersistentVolumeClaim" in pvc_yaml
     assert "kubetorch-controller-data" in pvc_yaml
     assert "repository: ghcr.io/cezarc1/kubetorch-controller" in values_yaml
