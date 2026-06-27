@@ -32,6 +32,11 @@ Prerequisites:
 - a cluster storage class for the Kubetorch data store;
 - NVIDIA cluster support only if you plan to request GPUs.
 
+Kubetorch is intended to work on standard Kubernetes distributions, including
+local k3s clusters and managed AKS, EKS, and GKE clusters. Cluster-specific setup
+usually comes down to storage classes, GPU drivers/device plugins, ingress, and
+image pull secrets.
+
 Install the Python client from this checkout so you are using this fork:
 
 ```bash
