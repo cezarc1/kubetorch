@@ -1,6 +1,6 @@
 dataSync:
   # For debugging: use the fork GHCR image built with release/build_images.sh.
-  image: ghcr.io/cezarc1/kubetorch-data-store:0.5.1
+  image: ghcr.io/cezarc1/kubetorch-data-store:0.5.2
   imagePullPolicy: Always  # Use "Always" to always pull latest, "IfNotPresent" to use cached
   # serviceAccount: kubetorch-service-account  # Optional: use specific service account for Workload Identity
   maxConnections: 500  # Maximum concurrent rsync connections (increase for many worker pods)

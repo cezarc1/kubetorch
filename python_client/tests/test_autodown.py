@@ -90,6 +90,73 @@ def test_auto_termination_payload_construction():
 
 
 @pytest.mark.level("unit")
+def test_apply_and_register_accepts_pool_status_response():
+    """Test compatibility with 0.5.1+ controllers that return pool_status."""
+    from kubetorch.provisioning.service_manager import ServiceManager
+
+    mock_controller = MagicMock()
+    mock_controller.deploy.return_value = {
+        "apply_status": "success",
+        "pool_status": "success",
+        "pool_message": "Pool registered",
+        "service_url": "http://test-service.default.svc.cluster.local",
+        "resource": {"metadata": {"name": "test-service"}},
+    }
+
+    with patch("kubetorch.provisioning.service_manager.globals") as mock_globals:
+        mock_globals.config.username = "test-user"
+        mock_globals.controller_client.return_value = mock_controller
+
+        manager = ServiceManager.__new__(ServiceManager)
+        manager.namespace = "default"
+        manager.resource_type = "deployment"
+        manager.config = {}
+        manager.pod_spec = MagicMock(return_value={"containers": [{"ports": [{"containerPort": 32300}]}]})
+        manager._resolve_service_config = MagicMock(return_value=None)
+        manager._load_workload_metadata = MagicMock(return_value={"username": "test-user"})
+
+        result = manager._apply_and_register_workload(
+            manifest={"metadata": {"labels": {}, "annotations": {}}, "spec": {}},
+            service_name="test-service",
+            runtime_config={},
+        )
+
+        assert result["service_url"] == "http://test-service.default.svc.cluster.local"
+
+
+@pytest.mark.level("unit")
+def test_apply_and_register_reports_pool_status_failure():
+    """Test that pool_status failures surface the controller's pool_message."""
+    from kubetorch.provisioning.service_manager import ServiceManager
+
+    mock_controller = MagicMock()
+    mock_controller.deploy.return_value = {
+        "apply_status": "success",
+        "pool_status": "error",
+        "pool_message": "Pool registration failed",
+    }
+
+    with patch("kubetorch.provisioning.service_manager.globals") as mock_globals:
+        mock_globals.config.username = "test-user"
+        mock_globals.controller_client.return_value = mock_controller
+
+        manager = ServiceManager.__new__(ServiceManager)
+        manager.namespace = "default"
+        manager.resource_type = "deployment"
+        manager.config = {}
+        manager.pod_spec = MagicMock(return_value={"containers": [{"ports": [{"containerPort": 32300}]}]})
+        manager._resolve_service_config = MagicMock(return_value=None)
+        manager._load_workload_metadata = MagicMock(return_value={"username": "test-user"})
+
+        with pytest.raises(Exception, match="Pool registration failed"):
+            manager._apply_and_register_workload(
+                manifest={"metadata": {"labels": {}, "annotations": {}}, "spec": {}},
+                service_name="test-service",
+                runtime_config={},
+            )
+
+
+@pytest.mark.level("unit")
 def test_auto_termination_not_set_when_no_ttl():
     """Test that auto_termination is None when inactivity_ttl is not provided"""
     from kubetorch.provisioning.service_manager import ServiceManager

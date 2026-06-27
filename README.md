@@ -51,7 +51,7 @@ Install the Kubetorch control plane:
 
 ```bash
 helm upgrade --install kubetorch oci://ghcr.io/cezarc1/charts/kubetorch \
-  --version 0.5.1 \
+  --version 0.5.2 \
   -n kubetorch --create-namespace
 
 kt check --namespace kubetorch
@@ -63,7 +63,7 @@ disable the bundled chart dependencies:
 
 ```bash
 helm upgrade --install kubetorch oci://ghcr.io/cezarc1/charts/kubetorch \
-  --version 0.5.1 \
+  --version 0.5.2 \
   -n kubetorch --create-namespace \
   --set nvidia-device-plugin.enabled=false \
   --set dcgm-exporter.enabled=false \
@@ -106,7 +106,7 @@ kt run \
   --name readme-smoke \
   --intent "Verify source sync, logs, notes, and artifact capture" \
   --namespace kubetorch \
-  --image ghcr.io/cezarc1/kubetorch:0.5.1 \
+  --image ghcr.io/cezarc1/kubetorch:0.5.2 \
   --source-dir . \
   -- \
   python smoke.py
@@ -183,7 +183,7 @@ command. The run image must include:
 The public fork base image is:
 
 ```text
-ghcr.io/cezarc1/kubetorch:0.5.1
+ghcr.io/cezarc1/kubetorch:0.5.2
 ```
 
 For private workload images, configure `kubetorchConfig.imagePullSecrets` on the
@@ -231,15 +231,35 @@ If you are using a published Python package instead of a source checkout:
 pip install "kubetorch[client]"
 ```
 
+For this fork, install from an exact commit or matching release tag until a
+published package is available:
+
+```bash
+pip install "git+https://github.com/cezarc1/kubetorch.git@main#subdirectory=python_client"
+```
+
 ### Kubernetes Deployment With Helm
 
 The chart and default images are published publicly under `ghcr.io/cezarc1`:
 
 ```bash
+# Install this fork's chart and images together.
 helm upgrade --install kubetorch oci://ghcr.io/cezarc1/charts/kubetorch \
-  --version 0.5.1 \
-  -n kubetorch --create-namespace
+  --version 0.5.2 -n kubetorch --create-namespace
+
+# Or download the chart locally first.
+helm pull oci://ghcr.io/cezarc1/charts/kubetorch --version 0.5.2 --untar
+helm upgrade --install kubetorch ./kubetorch -n kubetorch --create-namespace
 ```
+
+For fork-specific install and upgrade notes, see
+[`docs/kubetorch-fork-install-upgrade.md`](docs/kubetorch-fork-install-upgrade.md).
+
+### `kt run` Images
+
+`kt run` starts Jobs with `python -m kubetorch.run_wrapper --`, so the run image
+must include the Kubetorch Python client and `kubetorch.run_wrapper`. Use a
+Kubetorch runtime image or install the client into your custom training image.
 
 For private images, authenticate the cluster with a GHCR pull secret:
 
@@ -252,7 +272,7 @@ kubectl create secret docker-registry ghcr-pull-secret \
   --docker-password="$GHCR_TOKEN"
 
 helm upgrade --install kubetorch oci://ghcr.io/cezarc1/charts/kubetorch \
-  --version 0.5.1 \
+  --version 0.5.2 \
   -n kubetorch --create-namespace \
   --set kubetorchConfig.imagePullSecrets[0].name=ghcr-pull-secret
 ```
@@ -264,23 +284,23 @@ Build and publish the fork-owned images:
 ```bash
 gh auth token | docker login ghcr.io -u cezarc1 --password-stdin
 
-python release/sync_version.py 0.5.1
+python release/sync_version.py 0.5.2
 IMAGE_NAMESPACE=ghcr.io/cezarc1 DOCKER_PLATFORMS=linux/amd64,linux/arm64 \
-  release/build_images.sh --version 0.5.1 --all --push
+  release/build_images.sh --version 0.5.2 --all --push
 ```
 
 Publish the matching chart after the images are available:
 
 ```bash
 GHCR_TOKEN="$(gh auth token)" GHCR_USERNAME=cezarc1 \
-  release/publish_chart.sh --version 0.5.1
+  release/publish_chart.sh --version 0.5.2
 ```
 
 Upgrade a cluster to the same tag:
 
 ```bash
 helm upgrade kubetorch oci://ghcr.io/cezarc1/charts/kubetorch \
-  --version 0.5.1 \
+  --version 0.5.2 \
   -n kubetorch
 ```
 

@@ -11,7 +11,7 @@ spec:
     matchLabels:
       app: kubetorch-controller
   strategy:
-    type: RollingUpdate
+    type: Recreate
   template:
     metadata:
       labels:

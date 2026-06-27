@@ -305,24 +305,57 @@ def test_controller_chart_persists_sqlite_database():
     chart_root = Path(__file__).parents[2] / "charts" / "kubetorch"
     deployment = chart_root / "templates" / "controller" / "deployment.yaml"
     pvc = chart_root / "templates" / "controller" / "pvc.yaml"
+    values = chart_root / "values.yaml"
 
     deployment_yaml = deployment.read_text()
     pvc_yaml = pvc.read_text()
+    values_yaml = values.read_text()
 
     assert "mountPath: /data" in deployment_yaml
     assert "name: controller-data" in deployment_yaml
+    assert "type: Recreate" in deployment_yaml
     assert "kind: PersistentVolumeClaim" in pvc_yaml
     assert "kubetorch-controller-data" in pvc_yaml
+    assert "repository: ghcr.io/cezarc1/kubetorch-controller" in values_yaml
+    assert "repository: ghcr.io/cezarc1/kubetorch-data-store" in values_yaml
 
 
 @pytest.mark.level("unit")
-def test_version_mismatch_ignore_env_suppresses_warning(monkeypatch, recwarn):
+def test_version_suffix_match_is_compatible(recwarn):
     from kubetorch import __version__
     from kubetorch.provisioning.utils import check_kubetorch_versions
 
     class FakeResponse:
         def json(self):
-            return {"version": f"{__version__}-cluster"}
+            return {"version": f"{__version__}-cezar-abc123"}
+
+    check_kubetorch_versions(FakeResponse())
+
+    assert list(recwarn) == []
+
+
+@pytest.mark.level("unit")
+def test_version_mismatch_raises_for_different_base_semver(monkeypatch):
+    from kubetorch import VersionMismatchError
+    from kubetorch.provisioning.utils import check_kubetorch_versions
+
+    class FakeResponse:
+        def json(self):
+            return {"version": "99.99.99-cezar-abc123"}
+
+    monkeypatch.delenv("KUBETORCH_IGNORE_VERSION_MISMATCH", raising=False)
+
+    with pytest.raises(VersionMismatchError, match="client=.*cluster=99.99.99-cezar-abc123"):
+        check_kubetorch_versions(FakeResponse())
+
+
+@pytest.mark.level("unit")
+def test_version_mismatch_ignore_env_suppresses_error(monkeypatch, recwarn):
+    from kubetorch.provisioning.utils import check_kubetorch_versions
+
+    class FakeResponse:
+        def json(self):
+            return {"version": "99.99.99-cezar-abc123"}
 
     monkeypatch.setenv("KUBETORCH_IGNORE_VERSION_MISMATCH", "1")
 

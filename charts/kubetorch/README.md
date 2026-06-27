@@ -1,6 +1,6 @@
 # kubetorch
 
-![Version: 0.5.1](https://img.shields.io/badge/Version-0.5.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.5.1](https://img.shields.io/badge/AppVersion-0.5.1-informational?style=flat-square)
+![Version: 0.5.2](https://img.shields.io/badge/Version-0.5.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.5.2](https://img.shields.io/badge/AppVersion-0.5.2-informational?style=flat-square)
 
 A Helm chart for kubetorch
 
@@ -29,7 +29,7 @@ A Helm chart for kubetorch
 | dataStore.repository | string | `"ghcr.io/cezarc1/kubetorch-data-store"` |  |
 | dataStore.storage.size | string | `"100Gi"` |  |
 | dataStore.storage.storageClassName | string | `""` |  |
-| dataStore.tag | string | `"0.5.1"` |  |
+| dataStore.tag | string | `"0.5.2"` |  |
 | dataStore.timeout | int | `600` |  |
 | dataStore.tolerations | list | `[]` |  |
 | dcgm-exporter.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key | string | `"karpenter.k8s.aws/instance-gpu-manufacturer"` |  |
@@ -87,7 +87,7 @@ A Helm chart for kubetorch
 | kubetorchController.storage.enabled | bool | `true` |  |
 | kubetorchController.storage.size | string | `"5Gi"` |  |
 | kubetorchController.storage.storageClassName | string | `""` |  |
-| kubetorchController.tag | string | `"0.5.1"` |  |
+| kubetorchController.tag | string | `"0.5.2"` |  |
 | kubetorchController.tolerations | list | `[]` |  |
 | kubetorchController.ttl.enabled | bool | `true` |  |
 | kubetorchController.ttl.intervalSeconds | int | `300` |  |

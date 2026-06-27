@@ -19,6 +19,15 @@ from kubetorch.utils import http_conflict, http_not_found
 
 logger = get_logger(__name__)
 
+SUCCESSFUL_REGISTRATION_STATUSES = ("success", "warning", "partial")
+
+
+def _registration_status_and_message(deploy_response: Dict) -> Tuple[Optional[str], Optional[str]]:
+    """Return the registration status from either controller response schema."""
+    if "pool_status" in deploy_response:
+        return deploy_response.get("pool_status"), deploy_response.get("pool_message")
+    return deploy_response.get("workload_status"), deploy_response.get("workload_message")
+
 
 class ServiceManager:
     """Unified service manager for all K8s resource types.
@@ -652,9 +661,9 @@ class ServiceManager:
 
             # Check workload registration result
             if not dry_run:
-                workload_status = deploy_response.get("workload_status")
-                if workload_status not in ("success", "warning", "partial"):
-                    raise Exception(f"Resource registration failed: {deploy_response.get('workload_message')}")
+                registration_status, registration_message = _registration_status_and_message(deploy_response)
+                if registration_status not in SUCCESSFUL_REGISTRATION_STATUSES:
+                    raise Exception(f"Resource registration failed: {registration_message}")
 
                 logger.info(f"Registered {service_name} to kubetorch controller in namespace {self.namespace}")
 

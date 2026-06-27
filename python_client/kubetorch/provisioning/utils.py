@@ -1,5 +1,6 @@
 import copy
 import os
+import re
 import socket
 import time
 
@@ -19,6 +20,19 @@ logger = get_logger(__name__)
 
 class KubernetesCredentialsError(Exception):
     pass
+
+
+def _base_semver(version: str) -> Optional[str]:
+    match = re.match(r"^(\d+\.\d+\.\d+)", version)
+    return match.group(1) if match else None
+
+
+def _versions_compatible(client_version: str, cluster_version: str) -> bool:
+    client_base = _base_semver(client_version)
+    cluster_base = _base_semver(cluster_version)
+    if client_base and cluster_base:
+        return client_base == cluster_base
+    return client_version == cluster_version
 
 
 def has_k8s_credentials():
@@ -52,7 +66,7 @@ def check_kubetorch_versions(response):
         logger.debug("No 'version' found in health check response")
         return
 
-    if python_client_version != helm_installed_version:
+    if not _versions_compatible(python_client_version, helm_installed_version):
         msg = (
             f"client={python_client_version}, cluster={helm_installed_version}. "
             "To suppress this error, set the environment variable "
