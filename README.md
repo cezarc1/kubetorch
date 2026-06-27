@@ -2,6 +2,9 @@
 
 **Agent-friendly ML batch runs and Pythonic remote execution on Kubernetes**
 
+Originally built by [Runhouse](https://www.run.house), which has [as of March
+2026 shut down](https://www.linkedin.com/posts/greenbergdon_im-excited-to-share-that-the-runhouse-team-share-7453528259448860673-2n_r/).
+
 This fork of the original KubeTorch focuses on making ML runs on Kubernetes reproducible and agent-first. For example, each batch run can capture the exact source snapshot, sanitized environment, intent, start time, logs, notes, and artifact references so humans and coding agents can inspect what happened after the container exits.
 
 Kubetorch still supports the upstream Pythonic remote execution model: bring cluster compute into notebooks, IDEs, CI, or production code without rewriting your workload around a DAG system.
@@ -188,5 +191,5 @@ previously split across internal and OSS repos:
 
 [Apache 2.0 License](LICENSE)
 
-Originally built by Runhouse. This fork now publishes its own chart, images,
-and documentation under the `cezarc1` GitHub/GHCR namespace.
+This fork now publishes its own chart, images, and documentation under the
+`cezarc1` GitHub/GHCR namespace.
