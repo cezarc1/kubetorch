@@ -1,5 +1,9 @@
 FROM python:3.11-slim
 
+LABEL org.opencontainers.image.source="https://github.com/cezarc1/kubetorch"
+LABEL org.opencontainers.image.description="Kubetorch controller"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+
 WORKDIR /app
 
 # Install Python dependencies from file (cached unless requirements.txt changes)
