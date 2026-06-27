@@ -1,5 +1,9 @@
 FROM python:3.11-slim
 
+LABEL org.opencontainers.image.source="https://github.com/cezarc1/kubetorch"
+LABEL org.opencontainers.image.description="Kubetorch data store"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+
 # Prevent Python from writing bytecode files
 ENV PYTHONDONTWRITEBYTECODE=1
 

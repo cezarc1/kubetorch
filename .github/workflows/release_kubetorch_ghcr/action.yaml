@@ -1,16 +1,18 @@
 name: "Release Kubetorch in GHCR"
-description: "Packages and releases the Kubetorch Helm chart to GHCR, then posts an update to Slack."
+description: "Packages and releases the Kubetorch Helm chart to GHCR."
 
 inputs:
   gh_helm_token:
     description: "GitHub token for authenticating to GHCR"
     required: true
   slack_bot_token:
-    description: "Slack bot token for sending release notifications"
-    required: true
+    description: "Slack bot token for optional release notifications"
+    required: false
+    default: ""
   slack_channel_id:
-    description: "Slack channel ID for posting the notification"
-    required: true
+    description: "Slack channel ID for optional release notifications"
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -38,16 +40,16 @@ runs:
       shell: bash
       run: |
         echo "${{ inputs.gh_helm_token }}" | helm registry login ghcr.io \
-          --username run-house --password-stdin
+          --username cezarc1 --password-stdin
 
     - name: Push chart to GHCR
       shell: bash
       run: |
         CHART_TGZ=$(ls kubetorch-*.tgz)
-        helm push "$CHART_TGZ" oci://ghcr.io/run-house/charts
+        helm push "$CHART_TGZ" oci://ghcr.io/cezarc1/charts
 
-    - name: Post to Runhouse Slack channel
-      if: always()
+    - name: Post release notification
+      if: ${{ always() && inputs.slack_bot_token != '' && inputs.slack_channel_id != '' }}
       uses: slackapi/slack-github-action@v1.24.0
       with:
         channel-id: ${{ inputs.slack_channel_id }}

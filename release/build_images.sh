@@ -8,7 +8,7 @@ require_command docker
 VERSION="$(read_version)"
 PUSH=false
 COMPONENTS=()
-IMAGE_NAMESPACE="${IMAGE_NAMESPACE:-ghcr.io/run-house}"
+IMAGE_NAMESPACE="${IMAGE_NAMESPACE:-ghcr.io/cezarc1}"
 HOST_ARCH="$(uname -m)"
 
 case "${HOST_ARCH}" in

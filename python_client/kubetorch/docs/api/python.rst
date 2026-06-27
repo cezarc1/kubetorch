@@ -3,11 +3,7 @@ Python API
 
 The API Reference provides detailed information about the Kubetorch Python API and CLI commands.
 
-If you are just getting started with Kubetorch or looking for use cases and examples, we recommend first checking out:
-
-* `Guides <https://www.run.house/kubetorch/introduction>`_: quick start, high level concepts, developer guides, and more
-
-* `Examples <https://www.run.house/examples>`_: end-to-end examples using Kubetorch
+If you are just getting started with Kubetorch, first read the local guides in this documentation set, especially `Batch Runs for Agent Operators <../guides/batch_runs.html>`_.
 
 Compute
 -------
@@ -115,11 +111,11 @@ Workload Configs
 ----------------
 Kubetorch provides several observability and debugging features to help monitor and troubleshoot your workloads. The behavior of these features can be fully customized via their respective configurations, allowing you to adjust their settings accordingly:
 
-* `Metrics streaming <https://www.run.house/kubetorch/concepts/monitoring-and-observability#metrics-streaming>`_ : Collects and streams runtime metrics from your workloads.
+* Metrics streaming: collects and streams runtime metrics from your workloads.
 
-* `Log streaming <_Log streaming: https://www.run.house/kubetorch/concepts/monitoring-and-observability#log-streaming>`_ : Streams application logs in real-time for easy inspection.
+* Log streaming: streams application logs in real-time for easy inspection.
 
-* `Debugging tools <https://www.run.house/kubetorch/guides/debugging>`_ : Enables runtime introspection and debugging of workloads.
+* Debugging tools: enable runtime introspection and debugging of workloads.
 
 .. toctree::
    :maxdepth: 1

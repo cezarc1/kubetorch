@@ -16,6 +16,6 @@ Since Kubetorch has no local runtime or code serialization, you can access large
 
 ---
 
-[Apache 2.0 License](https://github.com/run-house/runhouse/blob/main/LICENSE)
+[Apache 2.0 License](../LICENSE)
 
-**🏃‍♀️ Built by [Runhouse](https://www.run.house) 🏠**
+Originally built by Runhouse; maintained in this fork under the `cezarc1` namespace.

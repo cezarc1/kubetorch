@@ -1,5 +1,9 @@
 FROM ubuntu:22.04
 
+LABEL org.opencontainers.image.source="https://github.com/cezarc1/kubetorch"
+LABEL org.opencontainers.image.description="Kubetorch Ubuntu workload base image"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install Python 3.11, pip, and other tools

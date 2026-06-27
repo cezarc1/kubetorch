@@ -8,8 +8,8 @@ require_env GHCR_TOKEN
 
 VERSION="$(read_version)"
 SKIP_PACKAGE=false
-GHCR_USERNAME="${GHCR_USERNAME:-run-house}"
-CHART_REGISTRY="${CHART_REGISTRY:-oci://ghcr.io/run-house/charts}"
+GHCR_USERNAME="${GHCR_USERNAME:-cezarc1}"
+CHART_REGISTRY="${CHART_REGISTRY:-oci://ghcr.io/cezarc1/charts}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

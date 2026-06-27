@@ -36,7 +36,30 @@ env:
   KUBETORCH_IGNORE_VERSION_MISMATCH: 1
 
 jobs:
+  cluster-secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.check.outputs.available }}
+    steps:
+      - name: Check cluster secrets
+        id: check
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
+          KUBECONFIG_SECRET: ${{ secrets.KUBECONFIG }}
+          CI_CLUSTER_NAME: ${{ secrets.CI_CLUSTER_NAME }}
+          CI_CLUSTER_REGION: ${{ secrets.CI_CLUSTER_REGION }}
+        run: |
+          if [[ -n "$GCP_PROJECT_ID" && -n "$GCP_WORKLOAD_IDENTITY_PROVIDER" && -n "$KUBECONFIG_SECRET" && -n "$CI_CLUSTER_NAME" && -n "$CI_CLUSTER_REGION" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Cluster-backed tests skipped because required GCP/GKE secrets are not configured."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
   imperative-tests:
+    if: ${{ needs.cluster-secrets.outputs.available == 'true' }}
+    needs: cluster-secrets
     strategy:
       fail-fast: false  # prevents cancelling other matrix jobs on failure
       matrix:
@@ -128,8 +151,8 @@ jobs:
           KT_STREAM_METRICS: false
 
   cleanup:
-    if: ${{ always() }}
-    needs: [imperative-tests]
+    if: ${{ always() && needs.cluster-secrets.outputs.available == 'true' }}
+    needs: [cluster-secrets, imperative-tests]
     runs-on: ubuntu-latest
     permissions:
       id-token: write

@@ -18,7 +18,7 @@ KUBETORCH_NAMESPACE = "kubetorch"
 DEFAULT_NAMESPACE = "default"
 
 # Images
-DEFAULT_IMAGE_NAMESPACE = os.getenv("KUBETORCH_IMAGE_NAMESPACE", "ghcr.io/run-house")
+DEFAULT_IMAGE_NAMESPACE = os.getenv("KUBETORCH_IMAGE_NAMESPACE", "ghcr.io/cezarc1")
 
 
 def _versioned_image(image_name: str) -> str:
@@ -32,7 +32,7 @@ KUBETORCH_IMAGE = _versioned_image("kubetorch")
 UBUNTU_IMAGE_MINIMAL = _versioned_image("ubuntu")
 UBUNTU_IMAGE_WITH_OTEL = _versioned_image("ubuntu-otel")
 
-DEFAULT_PROXY_IMAGE = "ghcr.io/run-house/proxy:v2"
+DEFAULT_PROXY_IMAGE = "ghcr.io/cezarc1/proxy:v2"
 KUBETORCH_IMAGE_TRAPDOOR = "kubetorch"
 
 # Service Accounts
@@ -87,5 +87,5 @@ REMOTE_RSYNC_PORT = 873
 DATA_STORE_SERVICE_NAME = "kubetorch-data-store"
 DATA_STORE_METADATA_PORT = 8081
 
-# Runhouse
+# UI
 KUBETORCH_UI_SERVICE_NAME = "kubetorch-ui-service"

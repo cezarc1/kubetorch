@@ -9,6 +9,10 @@ inputs:
   dest_repo_token:
     description: "GitHub token to push to destination repository"
     required: true
+  dest_repository:
+    description: "Destination repository for JSON documentation sync"
+    required: false
+    default: "cezarc1/kubetorch-docs"
 
 runs:
   using: "composite"
@@ -76,7 +80,7 @@ runs:
     - name: Checkout destination repository
       uses: actions/checkout@v4
       with:
-        repository: run-house/kubetorch-docs
+        repository: ${{ inputs.dest_repository }}
         token: ${{ inputs.dest_repo_token }}
         path: dest-repo
         ref: main

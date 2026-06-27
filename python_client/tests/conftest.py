@@ -15,7 +15,7 @@ TEST_SESSION_HASH = None
 #   pytest --eager          # Parallel fixture init (faster)
 #   pytest                  # Serial fixture init (default, for debugging)
 # ====================
-KUBETORCH_IMAGE = "ghcr.io/run-house/kubetorch:main"
+KUBETORCH_IMAGE = "ghcr.io/cezarc1/kubetorch:main"
 
 
 @pytest.fixture

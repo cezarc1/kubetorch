@@ -12,10 +12,10 @@ This repo now carries the customer-facing Kubetorch release surface in one place
 
 The Python client now uses that same version for its default remote job images:
 
-- `ghcr.io/run-house/server:<kubetorch version>`
-- `ghcr.io/run-house/server-otel:<kubetorch version>`
-- `ghcr.io/run-house/ubuntu:<kubetorch version>`
-- `ghcr.io/run-house/ubuntu-otel:<kubetorch version>`
+- `ghcr.io/cezarc1/server:<kubetorch version>`
+- `ghcr.io/cezarc1/server-otel:<kubetorch version>`
+- `ghcr.io/cezarc1/ubuntu:<kubetorch version>`
+- `ghcr.io/cezarc1/ubuntu-otel:<kubetorch version>`
 
 ## Common commands
 
@@ -80,25 +80,25 @@ PYPI_TOKEN=... release/publish_python.sh --version <version>
 Publish just the Helm chart to GHCR:
 
 ```bash
-GHCR_TOKEN=... GHCR_USERNAME=run-house release/publish_chart.sh --version <version>
+GHCR_TOKEN=... GHCR_USERNAME=cezarc1 release/publish_chart.sh --version <version>
 ```
 
 Build everything, push all images to GHCR, push the chart to GHCR, and publish the Python package to PyPI:
 
 ```bash
-GHCR_TOKEN=... GHCR_USERNAME=run-house PYPI_TOKEN=... release/publish_all.sh --version <version>
+GHCR_TOKEN=... GHCR_USERNAME=cezarc1 PYPI_TOKEN=... release/publish_all.sh --version <version>
 ```
 
 If you already ran the build steps manually, use:
 
 ```bash
-GHCR_TOKEN=... GHCR_USERNAME=run-house release/publish_chart.sh --version <version> --skip-package
+GHCR_TOKEN=... GHCR_USERNAME=cezarc1 release/publish_chart.sh --version <version> --skip-package
 PYPI_TOKEN=... release/publish_python.sh --version <version> --skip-build
 ```
 
 ## Image publishing
 
-By default, images are tagged under `ghcr.io/run-house`. Override that by exporting `IMAGE_NAMESPACE`, for example:
+By default, fork images are tagged under `ghcr.io/cezarc1`. Override that by exporting `IMAGE_NAMESPACE`, for example:
 
 ```bash
 IMAGE_NAMESPACE=ghcr.io/my-org release/build_images.sh --all --push

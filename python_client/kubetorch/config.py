@@ -209,7 +209,7 @@ class KubetorchConfig:
         """URL of the Kubetorch version to install.
 
         Used when installing Kubetorch in a Docker image or remote environment.
-        Can be found in the `basic install guide <https://www.run.house/kubetorch/installation>`_.
+        Set this to the fork chart URL when bootstrapping remote environments.
         """
         if self._install_url is None:
             if self._get_env_var("install_url"):

@@ -2,9 +2,10 @@
 
 **Agent-friendly ML batch runs and Pythonic remote execution on Kubernetes**
 
-This fork of the original KubeTorch (originally by run.house) focuses on reproducible, agent-first, ML runs on Kubernetes. 
+Originally built by [Runhouse](https://www.run.house), which has [as of March
+2026 shut down](https://www.linkedin.com/posts/greenbergdon_im-excited-to-share-that-the-runhouse-team-share-7453528259448860673-2n_r/).
 
-This fork focuses on making the framework agent-first. For example, each batch run can capture the exact source snapshot, sanitized environment, intent, start time, logs, notes, and artifact references so humans and coding agents can inspect what happened after the container exits.
+This fork of the original KubeTorch focuses on making ML runs on Kubernetes reproducible and agent-first. For example, each batch run can capture the exact source snapshot, sanitized environment, intent, start time, logs, notes, and artifact references so humans and coding agents can inspect what happened after the container exits.
 
 Kubetorch still supports the upstream Pythonic remote execution model: bring cluster compute into notebooks, IDEs, CI, or production code without rewriting your workload around a DAG system.
 
@@ -72,17 +73,87 @@ if __name__ == "__main__":
 pip install "kubetorch[client]"
 ```
 
-### 2. Kubernetes Deployment
+For local development from this checkout:
 
 ```bash
-# Upstream chart
-helm upgrade --install kubetorch oci://ghcr.io/run-house/charts/kubetorch \
-  --version 0.5.0 -n kubetorch --create-namespace
+cd python_client
+pip install -e ".[client]"
 ```
 
-This fork is usually deployed from fork-owned chart and image tags when testing
-agent-first batch-run behavior. Use immutable tags for controller, data-store,
-and workload images.
+### 2. Kubernetes Deployment With Helm
+
+The fork-owned chart is published as a public OCI Helm chart. The chart
+itself can be fetched anonymously:
+
+```bash
+helm upgrade --install kubetorch oci://ghcr.io/cezarc1/charts/kubetorch \
+  --version 0.5.0 \
+  -n kubetorch --create-namespace
+```
+
+Kubernetes will then pull the controller, data-store, and default workload
+images from `ghcr.io/cezarc1`. Unauthenticated installs only work if those image
+packages are public too. If any image package is still private, authenticate
+first:
+
+```bash
+echo "$GHCR_TOKEN" | helm registry login ghcr.io -u cezarc1 --password-stdin
+kubectl create secret docker-registry ghcr-pull-secret \
+  --namespace kubetorch \
+  --docker-server=ghcr.io \
+  --docker-username=cezarc1 \
+  --docker-password="$GHCR_TOKEN"
+```
+
+Then pass the pull secret to the chart:
+
+```bash
+helm upgrade --install kubetorch oci://ghcr.io/cezarc1/charts/kubetorch \
+  --version 0.5.0 \
+  -n kubetorch --create-namespace \
+  --set kubetorchConfig.imagePullSecrets[0].name=ghcr-pull-secret
+```
+
+For homelab installs where the NVIDIA device plugin and DCGM exporter are
+already managed elsewhere:
+
+```bash
+helm upgrade --install kubetorch oci://ghcr.io/cezarc1/charts/kubetorch \
+  --version 0.5.0 \
+  -n kubetorch --create-namespace \
+  --set nvidia-device-plugin.enabled=false \
+  --set dcgm-exporter.enabled=false \
+  --set kubetorchConfig.deployment_namespaces[0]=kubetorch
+```
+
+### 3. Upgrade The Fork
+
+Build and publish the fork-owned images:
+
+```bash
+gh auth token | docker login ghcr.io -u cezarc1 --password-stdin
+
+IMAGE_NAMESPACE=ghcr.io/cezarc1 DOCKER_PLATFORMS=linux/amd64,linux/arm64 \
+  release/build_images.sh --version 0.5.0 --all --push
+```
+
+Publish the matching chart after the images are available:
+
+```bash
+GHCR_TOKEN="$(gh auth token)" GHCR_USERNAME=cezarc1 \
+  release/publish_chart.sh --version 0.5.0
+```
+
+Upgrade the cluster to the same tag:
+
+```bash
+helm upgrade kubetorch oci://ghcr.io/cezarc1/charts/kubetorch \
+  --version 0.5.0 \
+  -n kubetorch
+```
+
+Use immutable tags for controller, data-store, and workload images when testing
+agent-first batch-run behavior.
 
 ## Documentation
 
@@ -120,4 +191,5 @@ previously split across internal and OSS repos:
 
 [Apache 2.0 License](LICENSE)
 
-Originally built by [Runhouse](https://www.run.house), which has [as of March 2026 shut down](https://www.linkedin.com/posts/greenbergdon_im-excited-to-share-that-the-runhouse-team-share-7453528259448860673-2n_r/). 
+This fork now publishes its own chart, images, and documentation under the
+`cezarc1` GitHub/GHCR namespace.
