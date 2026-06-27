@@ -36,7 +36,30 @@ env:
   KUBETORCH_IGNORE_VERSION_MISMATCH: 1
 
 jobs:
+  cluster-secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.check.outputs.available }}
+    steps:
+      - name: Check cluster secrets
+        id: check
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
+          KUBECONFIG_SECRET: ${{ secrets.KUBECONFIG }}
+          CI_CLUSTER_NAME: ${{ secrets.CI_CLUSTER_NAME }}
+          CI_CLUSTER_REGION: ${{ secrets.CI_CLUSTER_REGION }}
+        run: |
+          if [[ -n "$GCP_PROJECT_ID" && -n "$GCP_WORKLOAD_IDENTITY_PROVIDER" && -n "$KUBECONFIG_SECRET" && -n "$CI_CLUSTER_NAME" && -n "$CI_CLUSTER_REGION" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Cluster-backed tests skipped because required GCP/GKE secrets are not configured."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
   cli-tests:
+    if: ${{ needs.cluster-secrets.outputs.available == 'true' }}
+    needs: cluster-secrets
     concurrency:
       group: cli-${{ github.ref }}
       cancel-in-progress: true
@@ -186,6 +209,8 @@ jobs:
           KT_STREAM_METRICS: false
 
   monitoring-tests:
+    if: ${{ needs.cluster-secrets.outputs.available == 'true' }}
+    needs: cluster-secrets
     concurrency:
       group: monitoring-${{ github.ref }}
       cancel-in-progress: true
@@ -283,6 +308,8 @@ jobs:
           KT_STREAM_METRICS: true
 
   pod-from-pod-tests:
+    if: ${{ needs.cluster-secrets.outputs.available == 'true' }}
+    needs: cluster-secrets
     concurrency:
       group: pod-from-pod-${{ github.ref }}
       cancel-in-progress: true
@@ -376,6 +403,8 @@ jobs:
           KT_STREAM_METRICS: false
 
   distributed-tests:
+    if: ${{ needs.cluster-secrets.outputs.available == 'true' }}
+    needs: cluster-secrets
     concurrency:
       group: distributed-${{ github.ref }}
       cancel-in-progress: true
@@ -476,6 +505,8 @@ jobs:
           KT_STREAM_METRICS: false
 
   python-path-tests:
+    if: ${{ needs.cluster-secrets.outputs.available == 'true' }}
+    needs: cluster-secrets
     concurrency:
       group: python-path-${{ github.ref }}
       cancel-in-progress: true
@@ -569,6 +600,8 @@ jobs:
           KT_STREAM_METRICS: false
 
   secret-tests:
+    if: ${{ needs.cluster-secrets.outputs.available == 'true' }}
+    needs: cluster-secrets
     concurrency:
       group: secret-${{ github.ref }}
       cancel-in-progress: true
@@ -663,6 +696,8 @@ jobs:
           client_secret: "my-client-secret"
 
   declarative-tests:
+    if: ${{ needs.cluster-secrets.outputs.available == 'true' }}
+    needs: cluster-secrets
     concurrency:
       group: declarative-${{ github.ref }}
       cancel-in-progress: true
@@ -756,6 +791,8 @@ jobs:
           KT_STREAM_METRICS: false
 
   app-tests:
+    if: ${{ needs.cluster-secrets.outputs.available == 'true' }}
+    needs: cluster-secrets
     concurrency:
       group: app-${{ github.ref }}
       cancel-in-progress: true
@@ -849,6 +886,8 @@ jobs:
           KT_STREAM_METRICS: false
 
   manifest-tests:
+    if: ${{ needs.cluster-secrets.outputs.available == 'true' }}
+    needs: cluster-secrets
     concurrency:
       group: manifest-${{ github.ref }}
       cancel-in-progress: true
@@ -972,6 +1011,8 @@ jobs:
 
 
   imperative-tests:
+    if: ${{ needs.cluster-secrets.outputs.available == 'true' }}
+    needs: cluster-secrets
     concurrency:
       group: imperative-${{ github.ref }}
       cancel-in-progress: true
@@ -1049,6 +1090,8 @@ jobs:
           KT_STREAM_METRICS: false
 
   controller-tests:
+    if: ${{ needs.cluster-secrets.outputs.available == 'true' }}
+    needs: cluster-secrets
     concurrency:
       group: controller-${{ github.ref }}
       cancel-in-progress: true
@@ -1126,6 +1169,8 @@ jobs:
           KT_STREAM_METRICS: false
 
   compute-tests:
+    if: ${{ needs.cluster-secrets.outputs.available == 'true' }}
+    needs: cluster-secrets
     concurrency:
       group: compute-${{ github.ref }}
       cancel-in-progress: true
@@ -1219,8 +1264,8 @@ jobs:
           KT_STREAM_METRICS: false
 
   cleanup:
-    if: ${{ always() }}
-    needs: [cli-tests, distributed-tests, monitoring-tests, pod-from-pod-tests, python-path-tests, secret-tests, declarative-tests, app-tests, manifest-tests, imperative-tests, controller-tests, compute-tests]
+    if: ${{ always() && needs.cluster-secrets.outputs.available == 'true' }}
+    needs: [cluster-secrets, cli-tests, distributed-tests, monitoring-tests, pod-from-pod-tests, python-path-tests, secret-tests, declarative-tests, app-tests, manifest-tests, imperative-tests, controller-tests, compute-tests]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
