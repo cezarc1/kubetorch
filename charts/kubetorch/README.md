@@ -1,6 +1,6 @@
 # kubetorch
 
-![Version: 0.5.0](https://img.shields.io/badge/Version-0.5.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.5.0](https://img.shields.io/badge/AppVersion-0.5.0-informational?style=flat-square)
+![Version: 0.5.1](https://img.shields.io/badge/Version-0.5.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.5.1](https://img.shields.io/badge/AppVersion-0.5.1-informational?style=flat-square)
 
 A Helm chart for kubetorch
 
@@ -20,16 +20,16 @@ A Helm chart for kubetorch
 | dataStore.cpu.request | int | `1` |  |
 | dataStore.ephemeralStorage.request | string | `"5Gi"` |  |
 | dataStore.imagePullPolicy | string | `"Always"` |  |
-| dataStore.repository | string | `"ghcr.io/cezarc1/kubetorch-data-store"` |  |
 | dataStore.maxConnections | int | `500` |  |
 | dataStore.maxConnectionsPerModule | int | `0` |  |
 | dataStore.maxVerbosity | int | `0` |  |
 | dataStore.memory.request | string | `"4Gi"` |  |
 | dataStore.metadataPort | int | `8081` |  |
 | dataStore.nodeSelector | object | `{}` |  |
+| dataStore.repository | string | `"ghcr.io/cezarc1/kubetorch-data-store"` |  |
 | dataStore.storage.size | string | `"100Gi"` |  |
 | dataStore.storage.storageClassName | string | `""` |  |
-| dataStore.tag | string | `"0.5.0"` |  |
+| dataStore.tag | string | `"0.5.1"` |  |
 | dataStore.timeout | int | `600` |  |
 | dataStore.tolerations | list | `[]` |  |
 | dcgm-exporter.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key | string | `"karpenter.k8s.aws/instance-gpu-manufacturer"` |  |
@@ -68,7 +68,6 @@ A Helm chart for kubetorch
 | kubetorchController.eventWatcher.enabled | bool | `true` |  |
 | kubetorchController.eventWatcher.flushInterval | float | `1` |  |
 | kubetorchController.imagePullPolicy | string | `"Always"` |  |
-| kubetorchController.repository | string | `"ghcr.io/cezarc1/kubetorch-controller"` |  |
 | kubetorchController.nginx.healthRoute | string | `"/health"` |  |
 | kubetorchController.nginx.image.pullPolicy | string | `"IfNotPresent"` |  |
 | kubetorchController.nginx.image.repository | string | `"nginx"` |  |
@@ -81,10 +80,14 @@ A Helm chart for kubetorch
 | kubetorchController.nodeSelector | object | `{}` |  |
 | kubetorchController.pdb.enabled | bool | `true` |  |
 | kubetorchController.port | int | `8081` |  |
+| kubetorchController.repository | string | `"ghcr.io/cezarc1/kubetorch-controller"` |  |
 | kubetorchController.resources.cpu.request | string | `"1"` |  |
 | kubetorchController.resources.memory.request | string | `"2Gi"` |  |
 | kubetorchController.servicePort | int | `8080` |  |
-| kubetorchController.tag | string | `"0.5.0"` |  |
+| kubetorchController.storage.enabled | bool | `true` |  |
+| kubetorchController.storage.size | string | `"5Gi"` |  |
+| kubetorchController.storage.storageClassName | string | `""` |  |
+| kubetorchController.tag | string | `"0.5.1"` |  |
 | kubetorchController.tolerations | list | `[]` |  |
 | kubetorchController.ttl.enabled | bool | `true` |  |
 | kubetorchController.ttl.intervalSeconds | int | `300` |  |

@@ -87,7 +87,7 @@ itself can be fetched anonymously:
 
 ```bash
 helm upgrade --install kubetorch oci://ghcr.io/cezarc1/charts/kubetorch \
-  --version 0.5.0 \
+  --version 0.5.1 \
   -n kubetorch --create-namespace
 ```
 
@@ -109,7 +109,7 @@ Then pass the pull secret to the chart:
 
 ```bash
 helm upgrade --install kubetorch oci://ghcr.io/cezarc1/charts/kubetorch \
-  --version 0.5.0 \
+  --version 0.5.1 \
   -n kubetorch --create-namespace \
   --set kubetorchConfig.imagePullSecrets[0].name=ghcr-pull-secret
 ```
@@ -119,7 +119,7 @@ already managed elsewhere:
 
 ```bash
 helm upgrade --install kubetorch oci://ghcr.io/cezarc1/charts/kubetorch \
-  --version 0.5.0 \
+  --version 0.5.1 \
   -n kubetorch --create-namespace \
   --set nvidia-device-plugin.enabled=false \
   --set dcgm-exporter.enabled=false \
@@ -134,21 +134,21 @@ Build and publish the fork-owned images:
 gh auth token | docker login ghcr.io -u cezarc1 --password-stdin
 
 IMAGE_NAMESPACE=ghcr.io/cezarc1 DOCKER_PLATFORMS=linux/amd64,linux/arm64 \
-  release/build_images.sh --version 0.5.0 --all --push
+  release/build_images.sh --version 0.5.1 --all --push
 ```
 
 Publish the matching chart after the images are available:
 
 ```bash
 GHCR_TOKEN="$(gh auth token)" GHCR_USERNAME=cezarc1 \
-  release/publish_chart.sh --version 0.5.0
+  release/publish_chart.sh --version 0.5.1
 ```
 
 Upgrade the cluster to the same tag:
 
 ```bash
 helm upgrade kubetorch oci://ghcr.io/cezarc1/charts/kubetorch \
-  --version 0.5.0 \
+  --version 0.5.1 \
   -n kubetorch
 ```
 

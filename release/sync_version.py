@@ -94,8 +94,18 @@ def main() -> None:
     )
     replace_in_file(
         REPO_ROOT / "charts/kubetorch/README.md",
+        r"(?m)!\[Version: [0-9A-Za-z.+-]+\]",
+        f"![Version: {version}]",
+    )
+    replace_in_file(
+        REPO_ROOT / "charts/kubetorch/README.md",
         r"(?m)AppVersion-[0-9A-Za-z.+-]+-informational",
         f"AppVersion-{version}-informational",
+    )
+    replace_in_file(
+        REPO_ROOT / "charts/kubetorch/README.md",
+        r"(?m)!\[AppVersion: [0-9A-Za-z.+-]+\]",
+        f"![AppVersion: {version}]",
     )
     replace_in_file(
         REPO_ROOT / "charts/kubetorch/README.md",
@@ -117,6 +127,12 @@ def main() -> None:
         REPO_ROOT / "release/default_images/ubuntu-otel",
         r"(?m)^ARG BASE_IMAGE=.+$",
         f"ARG BASE_IMAGE=ghcr.io/cezarc1/ubuntu:{version}",
+        count=1,
+    )
+    replace_in_file(
+        REPO_ROOT / "services/data_store/debugging-values.yaml",
+        r"(?m)^  image: ghcr\.io/cezarc1/kubetorch-data-store:.+$",
+        f"  image: ghcr.io/cezarc1/kubetorch-data-store:{version}",
         count=1,
     )
 
