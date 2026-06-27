@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.abspath("../"))
 
 project = "Kubetorch"
 copyright = "Runhouse Inc"
-author = "the Runhouse team 🏃‍♀️🏠"
+author = "the Kubetorch fork maintainers"
 
 # The full version, including alpha/beta/rc tags
 import kubetorch

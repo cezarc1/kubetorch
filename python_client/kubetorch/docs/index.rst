@@ -1,14 +1,13 @@
 Kubetorch Documentation
 =======================
 
-Kubetorch is a Python client, controller, and data store for running ML
-workloads on Kubernetes. This fork emphasizes agent-friendly batch runs: each
-run should be inspectable through its source snapshot, intent, environment,
-logs, notes, and artifact references.
+Operational guides and API references for the ``cezarc1/kubetorch`` fork.
 
-Start with the batch-run guide if you are using Kubetorch for training,
-evaluation, data processing, or experiment shakedowns. Use the API references
-when you need exact Python or CLI surfaces.
+Useful project links:
+
+* `Fork repository <https://github.com/cezarc1/kubetorch>`_
+* `Helm chart package <https://github.com/users/cezarc1/packages/container/package/charts%2Fkubetorch>`_
+* `Batch Runs for Agent Operators <guides/batch_runs.html>`_
 
 .. toctree::
    :maxdepth: 1
@@ -17,9 +16,3 @@ when you need exact Python or CLI surfaces.
    guides/batch_runs
    api/python
    api/cli
-
-External references
--------------------
-
-* `Upstream Kubetorch documentation <https://www.run.house/kubetorch/introduction>`_
-* `Upstream examples <https://www.run.house/examples>`_

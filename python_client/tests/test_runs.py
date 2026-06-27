@@ -101,7 +101,7 @@ def test_build_job_manifest_wraps_command_with_run_identity():
         run_id="run-abc123",
         namespace="kubetorch",
         command=["python", "train.py", "--epochs", "1"],
-        image="ghcr.io/run-house/server:0.5.0",
+        image="ghcr.io/cezarc1/server:0.5.0",
         env={"TRAINING_MODE": "sft"},
         resources={"requests": {"cpu": "1", "memory": "2Gi"}},
         image_pull_secrets=["ghcr-pull-secret"],
@@ -119,7 +119,7 @@ def test_build_job_manifest_wraps_command_with_run_identity():
     assert pod_spec["imagePullSecrets"] == [{"name": "ghcr-pull-secret"}]
 
     container = pod_spec["containers"][0]
-    assert container["image"] == "ghcr.io/run-house/server:0.5.0"
+    assert container["image"] == "ghcr.io/cezarc1/server:0.5.0"
     assert container["command"] == ["python", "-m", "kubetorch.run_wrapper", "--"]
     assert container["args"] == ["python", "train.py", "--epochs", "1"]
     assert container["resources"] == {"requests": {"cpu": "1", "memory": "2Gi"}}
@@ -163,7 +163,7 @@ def test_submit_batch_run_defaults_to_kubetorch_runtime_image(monkeypatch, tmp_p
         command=["python", "-c", "print('ok')"], namespace="kubetorch", source_dir=source_dir
     )
 
-    expected_image = f"ghcr.io/run-house/kubetorch:{__version__}"
+    expected_image = f"ghcr.io/cezarc1/kubetorch:{__version__}"
     assert calls[0][1]["image"] == expected_image
     assert calls[1][2]["resource_manifest"]["spec"]["template"]["spec"]["containers"][0]["image"] == expected_image
     assert result["job_name"] == "kt-run-default-image"
@@ -369,7 +369,7 @@ def test_submit_batch_run_creates_run_uploads_source_and_applies_job(monkeypatch
         command=["python", "train.py"],
         namespace="kubetorch",
         source_dir=source_dir,
-        image="ghcr.io/run-house/server:0.5.0",
+        image="ghcr.io/cezarc1/server:0.5.0",
         intent="smoke run",
         env={"WANDB_API_KEY": "secret", "TRAINING_MODE": "sft"},
     )

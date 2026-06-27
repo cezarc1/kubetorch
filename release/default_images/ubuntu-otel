@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=ghcr.io/run-house/ubuntu:0.5.0
+ARG BASE_IMAGE=ghcr.io/cezarc1/ubuntu:0.5.0
 FROM ${BASE_IMAGE}
 
 # Add only tracing deps

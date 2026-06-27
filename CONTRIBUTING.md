@@ -1,5 +1,5 @@
 # Contributing to Kubetorch
-Please file an [issue](https://github.com/run-house/kubetorch/issues) if you encounter a bug.
+Please file an [issue](https://github.com/cezarc1/kubetorch/issues) if you encounter a bug.
 
 If you would like to submit a bug-fix or improve an existing feature, please submit a pull request following the
 process outlined below.
@@ -11,7 +11,7 @@ If you want to modify code, please follow the instructions for creating a Pull R
 ```
 git clone git@github.com:<your-gh-username>/kubetorch.git
 cd kubetorch
-git remote add upstream https://github.com/run-house/kubetorch.git
+git remote add upstream https://github.com/cezarc1/kubetorch.git
 ```
 
 2. Create a new branch for your development changes:
@@ -58,6 +58,4 @@ make clean html
 ```
 
 ### Examples
-Example code lives in [run-house/kubetorch-examples](https://github.com/run-house/kubetorch-examples), and is
-rendered on the [Examples Page](https://www.run.house/examples). Please follow the process above to create
-pull requests.
+Example code for this fork lives under `examples/` in this repository. Please follow the process above to create pull requests.

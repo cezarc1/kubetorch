@@ -35,7 +35,7 @@ on:
         options:
           - "yes"
           - "no"
-        default: "yes"
+        default: "no"
       upgrade_ci_cluster:
         description: 'Helm upgrade CI cluster?'
         required: false
@@ -102,9 +102,9 @@ jobs:
       - name: Build and push Kubetorch images
         if: ${{ github.event.inputs.publish_images == 'yes' }}
         env:
-          IMAGE_NAMESPACE: ghcr.io/run-house
+          IMAGE_NAMESPACE: ghcr.io/cezarc1
         run: |
-          echo "${{ secrets.GH_HELM_TOKEN }}" | docker login ghcr.io -u run-house --password-stdin
+          echo "${{ secrets.GH_HELM_TOKEN }}" | docker login ghcr.io -u cezarc1 --password-stdin
           release/build_images.sh --version "${{ github.event.inputs.kt_version }}" --all --push
 
       - name: build_and_sync_sphinx_docs
@@ -141,11 +141,11 @@ jobs:
       - name: Helm upgrade kubetorch on CI
         run: |
           helm upgrade --install kubetorch \
-            oci://ghcr.io/run-house/charts/kubetorch \
+            oci://ghcr.io/cezarc1/charts/kubetorch \
             --version ${{ github.event.inputs.kt_version }} \
             -n kubetorch --create-namespace
 
-      - name: Post to Runhouse Slack channel
+      - name: Post release notification
         uses: slackapi/slack-github-action@v1.24.0
         with:
           channel-id: ${{ secrets.CHANNEL_ID }}

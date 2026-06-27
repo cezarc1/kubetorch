@@ -2099,6 +2099,18 @@ def kt_teardown(
         exact_match=exact_match,
     )
 
+    if isinstance(delete_result, str):
+        if delete_result == "No services found":
+            if prefix or teardown_all:
+                console.print("No services found")
+            elif name:
+                console.print(f"Service {name} not found")
+            else:
+                console.print(delete_result)
+        else:
+            console.print(delete_result)
+        return
+
     deleted_managed_services = delete_result.get("deleted_managed", [])
     deleted_unmanaged_services = delete_result.get("deleted_unmanaged", [])
 

@@ -110,13 +110,13 @@ def main() -> None:
     replace_in_file(
         REPO_ROOT / "release/default_images/server-otel",
         r"(?m)^ARG BASE_IMAGE=.+$",
-        f"ARG BASE_IMAGE=ghcr.io/run-house/server:{version}",
+        f"ARG BASE_IMAGE=ghcr.io/cezarc1/server:{version}",
         count=1,
     )
     replace_in_file(
         REPO_ROOT / "release/default_images/ubuntu-otel",
         r"(?m)^ARG BASE_IMAGE=.+$",
-        f"ARG BASE_IMAGE=ghcr.io/run-house/ubuntu:{version}",
+        f"ARG BASE_IMAGE=ghcr.io/cezarc1/ubuntu:{version}",
         count=1,
     )
 

@@ -8,8 +8,8 @@ require_env GHCR_TOKEN
 require_env PYPI_TOKEN
 
 VERSION="$(read_version)"
-GHCR_USERNAME="${GHCR_USERNAME:-run-house}"
-IMAGE_NAMESPACE="${IMAGE_NAMESPACE:-ghcr.io/run-house}"
+GHCR_USERNAME="${GHCR_USERNAME:-cezarc1}"
+IMAGE_NAMESPACE="${IMAGE_NAMESPACE:-ghcr.io/cezarc1}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

@@ -66,11 +66,11 @@ def test_default_images():
     from kubetorch import __version__
 
     debian_img = kt.images.Debian()
-    assert debian_img.image_id == f"ghcr.io/run-house/server:{__version__}"
+    assert debian_img.image_id == f"ghcr.io/cezarc1/server:{__version__}"
     assert debian_img.name == "debian"
 
     ubuntu_img = kt.images.Ubuntu()
-    assert ubuntu_img.image_id == f"ghcr.io/run-house/ubuntu:{__version__}"
+    assert ubuntu_img.image_id == f"ghcr.io/cezarc1/ubuntu:{__version__}"
     assert ubuntu_img.name == "ubuntu"
 
     py_img = kt.images.Python311()
@@ -911,7 +911,7 @@ def test_compute_factory_image():
     assert compute_valid_image.image.image_id == image.image_id
     assert compute_valid_image.image.name == image.name
     with pytest.raises(AttributeError) as error:
-        kt.Compute(image="ghcr.io/run-house/server:v3")
+        kt.Compute(image="ghcr.io/cezarc1/server:v3")
     assert error.value.args[0] == "'str' object has no attribute 'image_id'"
 
 
