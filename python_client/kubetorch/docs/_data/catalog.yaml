@@ -1,0 +1,298 @@
+schema_version: 1
+
+sources:
+  examples:
+    repository: https://github.com/run-house/kubetorch-examples
+    commit: 6f1f962937758a61b9c16b946d4482bc862c2210
+  documentation:
+    host: https://www.run.house
+    archive: https://web.archive.org
+  fork:
+    repository: https://github.com/cezarc1/kubetorch
+    version: 0.5.2
+
+# Every recovered Kubetorch route has an explicit disposition. ``replacement``
+# is a Sphinx docname, not an output filename.
+routes:
+  - {upstream: /kubetorch/advanced-installation, snapshot: "20250806145242", disposition: rewrite, replacement: start/installation}
+  - {upstream: /kubetorch/advanced-installation/v0.1.16, snapshot: "20250907042631", disposition: redirect, replacement: start/installation}
+  - {upstream: /kubetorch/api-reference/python, snapshot: "20250907051338", disposition: current-api, replacement: api/python}
+  - {upstream: /kubetorch/api-reference/python/app, snapshot: "20251009234435", disposition: current-api, replacement: api/python/app}
+  - {upstream: /kubetorch/api-reference/python/cls, snapshot: "20251009225508", disposition: current-api, replacement: api/python/cls}
+  - {upstream: /kubetorch/api-reference/python/compute, snapshot: "20251010002859", disposition: current-api, replacement: api/python/compute}
+  - {upstream: /kubetorch/api-reference/python/config, snapshot: "20251010002932", disposition: current-api, replacement: api/python/config}
+  - {upstream: /kubetorch/api-reference/python/data_store, snapshot: "20260115205935", disposition: current-api, replacement: api/python/data_store}
+  - {upstream: /kubetorch/api-reference/python/fn, snapshot: "20251009224243", disposition: current-api, replacement: api/python/fn}
+  - {upstream: /kubetorch/api-reference/python/image, snapshot: "20251009233311", disposition: current-api, replacement: api/python/image}
+  - {upstream: /kubetorch/api-reference/python/secret, snapshot: "20251009231819", disposition: current-api, replacement: api/python/secret}
+  - {upstream: /kubetorch/api-reference/python/volumes, snapshot: "20251009234557", disposition: current-api, replacement: api/python/volumes}
+  - {upstream: /kubetorch/api-reference/python/workload_configs, snapshot: "20260115204738", disposition: current-api, replacement: api/python/workload_configs}
+  - {upstream: /kubetorch/api/cli, snapshot: "20250614171458", disposition: current-api, replacement: api/cli}
+  - {upstream: /kubetorch/api/compute, snapshot: "20250614170235", disposition: redirect, replacement: api/python/compute}
+  - {upstream: /kubetorch/api/distribute, snapshot: "20250614172748", disposition: redirect, replacement: guides/distributed}
+  - {upstream: /kubetorch/api/image, snapshot: "20250614165011", disposition: redirect, replacement: api/python/image}
+  - {upstream: /kubetorch/api/python, snapshot: "20250614163456", disposition: redirect, replacement: api/python}
+  - {upstream: /kubetorch/concepts, snapshot: "20250614171633", disposition: rewrite, replacement: concepts/overview}
+  - {upstream: /kubetorch/concepts/call-modes, snapshot: "20251210173351", disposition: rewrite, replacement: concepts/call-modes}
+  - {upstream: /kubetorch/concepts/data-store, snapshot: "20260217051944", disposition: rewrite, replacement: concepts/data-store}
+  - {upstream: /kubetorch/concepts/decorators, snapshot: "20251010001713", disposition: rewrite, replacement: concepts/decorators}
+  - {upstream: /kubetorch/concepts/distributed, snapshot: "20251118074755", disposition: rewrite, replacement: guides/distributed}
+  - {upstream: /kubetorch/concepts/monitoring-and-observability, snapshot: "20251210173302", disposition: rewrite, replacement: guides/monitoring}
+  - {upstream: /kubetorch/concepts/overview, snapshot: "20251010000023", disposition: rewrite, replacement: concepts/overview}
+  - {upstream: /kubetorch/concepts/primitives, snapshot: "20251009235211", disposition: rewrite, replacement: concepts/primitives}
+  - {upstream: /kubetorch/concepts/summary, snapshot: "20250719054004", disposition: redirect, replacement: concepts/overview}
+  - {upstream: /kubetorch/concepts/supporting-primitives, snapshot: "20251009234634", disposition: rewrite, replacement: concepts/supporting-primitives}
+  - {upstream: /kubetorch/guides/adapting-code, snapshot: "20250907043316", disposition: rewrite, replacement: guides/adapting-code}
+  - {upstream: /kubetorch/guides/async, snapshot: "20260217061951", disposition: rewrite, replacement: guides/async}
+  - {upstream: /kubetorch/guides/autoscaling, snapshot: "20260217062549", disposition: rewrite, replacement: guides/autoscaling}
+  - {upstream: /kubetorch/guides/debugging, snapshot: "20251210171236", disposition: rewrite, replacement: guides/debugging}
+  - {upstream: /kubetorch/guides/dev-prod, snapshot: "20251009234941", disposition: rewrite, replacement: guides/dev-prod}
+  - {upstream: /kubetorch/guides/distributed, snapshot: "20260217045704", disposition: rewrite, replacement: guides/distributed}
+  - {upstream: /kubetorch/guides/serialization, snapshot: "20260217045450", disposition: rewrite, replacement: guides/serialization}
+  - {upstream: /kubetorch/guides/summary, snapshot: "20251010000215", disposition: rewrite, replacement: start/workflow}
+  - {upstream: /kubetorch/hello-world, snapshot: "20250614173240", disposition: rewrite, replacement: start/quickstart}
+  - {upstream: /kubetorch/installation, snapshot: "20250614173510", disposition: rewrite, replacement: start/installation}
+  - {upstream: /kubetorch/introduction, snapshot: "20250614180246", disposition: rewrite, replacement: start/introduction}
+  - {upstream: /kubetorch/kubernetes-install, snapshot: "20251118064557", disposition: rewrite, replacement: start/installation}
+  - {upstream: /kubetorch/serverless, snapshot: "20251210182713", disposition: remove, replacement: start/installation}
+
+tutorials:
+  - id: offline-batch-inference
+    title: Offline Batch Inference
+    category: Inference and batch processing
+    source: examples/tutorials/batch_inference/embedding_batch_inference.py
+    slug: tutorials/inference/offline-batch-inference
+    hardware: [GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: swe-rex-sandbox
+    title: Simple Launching of Code Sandboxes
+    category: Reinforcement learning
+    source: examples/tutorials/code_sandbox/swe_rex.py
+    slug: tutorials/reinforcement-learning/swe-rex-sandbox
+    hardware: [CPU, Kubernetes]
+    validation: {state: reference, fork_version: 0.5.2}
+  - id: automatic-batch-size
+    title: Automatic Batch Size Recovery
+    category: Fault tolerance
+    source: examples/tutorials/fault_tolerance/batch_size_finding.py
+    slug: tutorials/fault-tolerance/automatic-batch-size
+    video_id: CH0mMcR5hZ8
+    hardware: [GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: dynamic-world-size
+    title: PyTorch Distributed Training with Dynamic World Size
+    category: Fault tolerance
+    source: examples/tutorials/fault_tolerance/dynamic_world_size.py
+    slug: tutorials/fault-tolerance/dynamic-world-size
+    video_id: k1olO4P_1WY
+    hardware: [Multi-node GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: dynamic-world-size-rs
+    title: Dynamic World Size with Persistent Checkpoints
+    category: Fault tolerance
+    source: examples/tutorials/fault_tolerance/dynamic_world_size_rs.py
+    slug: tutorials/fault-tolerance/dynamic-world-size-rs
+    hardware: [Multi-node GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: fail-to-larger-compute
+    title: Retry on Larger Compute
+    category: Fault tolerance
+    source: examples/tutorials/fault_tolerance/fail_to_larger_compute.py
+    slug: tutorials/fault-tolerance/fail-to-larger-compute
+    hardware: [Kubernetes]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: preemption-recovery
+    title: PyTorch Training with Preemption Recovery
+    category: Fault tolerance
+    source: examples/tutorials/fault_tolerance/preemption_recovery.py
+    slug: tutorials/fault-tolerance/preemption-recovery
+    hardware: [Multi-node GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: kubeflow-trainer
+    title: Kubeflow Trainer and Kubetorch
+    category: Orchestration
+    source: examples/tutorials/geo/vhr10/dinov3_vhr10/using_kubeflow_trainer_classifier.py
+    slug: tutorials/orchestration/kubeflow-trainer
+    hardware: [GPU, Kubeflow Trainer]
+    validation: {state: reference, fork_version: 0.5.2}
+  - id: yolo-vhr10-geo
+    title: YOLOv8 Object Detection with VHR-10
+    category: Training
+    source: examples/tutorials/geo/vhr10/yolo_vhr10/yolov8_vhr10_training.py
+    slug: tutorials/training/yolo-vhr10-geo
+    hardware: [GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: lightning-resnet
+    title: Distributed ResNet Training with PyTorch Lightning
+    category: Training
+    source: examples/tutorials/lightning/resnet_training.py
+    slug: tutorials/training/lightning-resnet
+    hardware: [Multi-node GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: llama3-finetune
+    title: Fine-Tune Llama 3 with LoRA
+    category: Training
+    source: examples/tutorials/llama3-finetune/fine_tune.py
+    slug: tutorials/training/llama3-finetune
+    hardware: [GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: pytorch-ddp
+    title: PyTorch Multi-Node Distributed Training
+    category: Distributed computing
+    source: examples/tutorials/pytorch_ddp/pytorch_ddp.py
+    slug: tutorials/distributed/pytorch-ddp
+    video_id: 5nRRaxZJnUg
+    hardware: [Multi-node GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: resnet-ddp
+    title: ResNet-152 Training with PyTorch Distributed
+    category: Training
+    source: examples/tutorials/pytorch_ddp/resnet/resnet_training.py
+    slug: tutorials/training/resnet-ddp
+    hardware: [Multi-node GPU, S3]
+    validation: {state: reference, fork_version: 0.5.2}
+  - id: rag-composite
+    title: RAG with Separate Embedding and Generation Services
+    category: Inference and batch processing
+    source: examples/tutorials/rag_composite_inference/rag_app.py
+    slug: tutorials/inference/rag-composite
+    video_id: sqNYnowFufY
+    hardware: [GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: ray-dlrm-data
+    title: Preprocessing Data for DLRM
+    category: Distributed computing
+    source: examples/tutorials/ray/dlrm-movielens/dlrm_data_prepoc.py
+    slug: tutorials/distributed/ray-dlrm-data
+    hardware: [Ray, S3]
+    validation: {state: reference, fork_version: 0.5.2}
+  - id: ray-dlrm-training
+    title: Distributed DLRM Training with Ray
+    category: Distributed computing
+    source: examples/tutorials/ray/dlrm-movielens/dlrm_training.py
+    slug: tutorials/distributed/ray-dlrm-training
+    hardware: [Ray, Multi-node GPU]
+    validation: {state: reference, fork_version: 0.5.2}
+  - id: ray-tune
+    title: Ray Hyperparameter Tuning
+    category: Distributed computing
+    source: examples/tutorials/ray/ray_tune/hpo.py
+    slug: tutorials/distributed/ray-tune
+    hardware: [Ray, GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: async-grpo
+    title: Async GRPO Training with Kubetorch
+    category: Reinforcement learning
+    source: examples/tutorials/reinforcement_learning/async_grpo/gsm8k_async_simple.py
+    slug: tutorials/reinforcement-learning/async-grpo
+    hardware: [Multi-GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: basic-grpo
+    title: Illustrative GRPO Training with Kubetorch
+    category: Reinforcement learning
+    source: examples/tutorials/reinforcement_learning/basic_grpo/gsm8k.py
+    slug: tutorials/reinforcement-learning/basic-grpo
+    hardware: [Multi-GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: trl-sandbox
+    title: RL with TRL and a SWE-ReX Code Sandbox
+    category: Reinforcement learning
+    source: examples/tutorials/reinforcement_learning/trl/trl_with_code_sandbox.py
+    slug: tutorials/reinforcement-learning/trl-sandbox
+    video_id: yB29sojkAiU
+    hardware: [GPU, Sandbox service]
+    validation: {state: reference, fork_version: 0.5.2}
+  - id: verl-grpo
+    title: GRPO Training with VeRL
+    category: Reinforcement learning
+    source: examples/tutorials/reinforcement_learning/verl_training/verl_train.py
+    slug: tutorials/reinforcement-learning/verl-grpo
+    video_id: -oz49qt_uSM
+    hardware: [Ray, Multi-GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: temporal-xgboost
+    title: GPU Training with Temporal and Kubetorch
+    category: Orchestration
+    source: examples/tutorials/temporal/xgboost_training/temporal_xgboost_gpu.py
+    slug: tutorials/orchestration/temporal-xgboost
+    hardware: [GPU, Temporal]
+    validation: {state: reference, fork_version: 0.5.2}
+  - id: temporal-trainer
+    title: XGBoost Trainer for Temporal
+    category: Orchestration
+    source: examples/tutorials/temporal/xgboost_training/trainer.py
+    slug: tutorials/orchestration/temporal-trainer
+    hardware: [GPU, Temporal]
+    validation: {state: reference, fork_version: 0.5.2}
+  - id: tensorflow-distributed
+    title: TensorFlow Multi-Node Distributed Training
+    category: Distributed computing
+    source: examples/tutorials/tensorflow/tensorflow_distributed.py
+    slug: tutorials/distributed/tensorflow
+    hardware: [Multi-node GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: mnist
+    title: Train an MNIST Classifier
+    category: Training
+    source: examples/tutorials/torchvision/basic_training_example.py
+    slug: tutorials/training/mnist
+    hardware: [GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: openai-oss-120b
+    title: Serve OpenAI GPT-OSS 120B
+    category: Inference and batch processing
+    source: examples/tutorials/transformers_inference/openai_oss_120b.py
+    slug: tutorials/inference/openai-oss-120b
+    video_id: VCWpCM2m1Hw
+    hardware: [Multi-GPU]
+    validation: {state: reference, fork_version: 0.5.2}
+  - id: triton-embedding
+    title: Online Embedding Inference with Triton
+    category: Inference and batch processing
+    source: examples/tutorials/triton/embedding.py
+    slug: tutorials/inference/triton-embedding
+    hardware: [GPU, Triton]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: vllm-async-engine
+    title: Async Engine vLLM
+    category: Inference and batch processing
+    source: examples/tutorials/vllm_inference/async_engine_vllm.py
+    slug: tutorials/inference/vllm-async-engine
+    hardware: [GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: deepseek-vllm
+    title: Launch DeepSeek-R1 with vLLM
+    category: Inference and batch processing
+    source: examples/tutorials/vllm_inference/deepseek_llama_70b.py
+    slug: tutorials/inference/deepseek-vllm
+    hardware: [Multi-GPU]
+    validation: {state: reference, fork_version: 0.5.2}
+  - id: vllm-hello-world
+    title: Deploy an LLM Inference Service
+    category: Inference and batch processing
+    source: examples/tutorials/vllm_inference/llama.py
+    slug: tutorials/inference/vllm-hello-world
+    video_id: 8slAR7459X4
+    hardware: [GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: vllm-distributed
+    title: vLLM Tensor and Pipeline Parallelism
+    category: Inference and batch processing
+    source: examples/tutorials/vllm_inference/vllm_ray_distributed.py
+    slug: tutorials/inference/vllm-distributed
+    hardware: [Ray, Multi-GPU]
+    validation: {state: reference, fork_version: 0.5.2}
+  - id: xgboost-gpu
+    title: XGBoost on a GPU
+    category: Training
+    source: examples/tutorials/xgb/xgboost_training.py
+    slug: tutorials/training/xgboost-gpu
+    hardware: [GPU]
+    validation: {state: adapted, fork_version: 0.5.2}
+  - id: yolo-vhr10
+    title: YOLOv8 Object Detection with VHR-10
+    category: Training
+    source: examples/tutorials/yolo/yolov8_vhr10_training.py
+    slug: tutorials/training/yolo-vhr10
+    hardware: [GPU]
+    validation: {state: adapted, fork_version: 0.5.2}

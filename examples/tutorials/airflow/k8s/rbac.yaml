@@ -1,0 +1,66 @@
+# Minimal Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: airflow-worker-kubetorch-minimal-binding
+  namespace: default  # TODO: Use your Kubetorch .to deployment namespace here
+  labels:
+    app: airflow
+    component: worker-permissions
+    source-role: kubetorch-role
+subjects:
+- kind: ServiceAccount
+  name: airflow-worker  # TODO: Use your service account name here
+  namespace: airflow  # TODO: Use your airflow namespace here
+roleRef:
+  kind: Role
+  name: kubetorch-minimal-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# ConfigMap Reader Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: airflow-worker-kubetorch-configmap-reader-binding
+  namespace: kubetorch
+  labels:
+    app: airflow
+    component: worker-permissions
+    source-role: kubetorch-role
+subjects:
+- kind: ServiceAccount
+  name: airflow-worker  # TODO: Use your service account name here
+  namespace: airflow  # TODO: Use your airflow namespace here
+roleRef:
+  kind: Role
+  name: kubetorch-configmap-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: airflow-worker-kubetorch-core-service-reader-binding
+  namespace: kubetorch
+  labels:
+    "kubetorch.com/service-account": kubetorch-service-account
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubetorch-core-service-reader
+subjects:
+  - kind: ServiceAccount
+    name: airflow-worker  # TODO: Use your service account name here
+    namespace: airflow  # TODO: Use your airflow namespace here
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: airflow-worker-kubetorch-tokenreview-creator-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubetorch-tokenreview-creator
+subjects:
+  - kind: ServiceAccount
+    name: airflow-worker  # TODO: Use your service account name here
+    namespace: airflow  # TODO: Use your airflow namespace here
