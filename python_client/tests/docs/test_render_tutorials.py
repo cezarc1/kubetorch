@@ -85,4 +85,4 @@ def test_renderer_cli_runs_from_repository_root():
     )
 
     assert "ModuleNotFoundError" not in result.stderr
-    assert "Generated tutorials are out of date" in result.stdout
+    assert result.returncode == 0, result.stdout + result.stderr
