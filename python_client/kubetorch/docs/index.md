@@ -2,9 +2,11 @@
 html_theme.sidebar_secondary.remove: true
 ---
 
+# Kubetorch Documentation
+
 <div class="kt-hero">
   <p class="kt-eyebrow">Pythonic remote execution · Kubernetes-native evidence</p>
-  <h1>Move Python to cluster compute.<br><span>Keep the story of every run.</span></h1>
+  <div class="kt-hero-heading" aria-hidden="true">Move Python to cluster compute.<br><span>Keep the story of every run.</span></div>
   <p class="kt-lede">Kubetorch gives notebooks, scripts, CI, and agents the same direct path to Kubernetes compute—without turning your training loop into YAML.</p>
   <div class="kt-execution-rail" aria-label="Kubetorch execution flow">
     <code>local.py</code><b>→</b><code>.to(compute)</code><b>→</b><code>Kubernetes</code><b>→</b><code>kt://evidence</code>

@@ -39,3 +39,10 @@ def test_every_legacy_route_is_a_document_or_redirect():
     legacy_docnames = {route.upstream.removeprefix("/kubetorch/") for route in catalog.routes}
 
     assert legacy_docnames <= docnames | _redirect_keys()
+
+
+def test_homepage_declares_a_sphinx_document_title():
+    source = (DOCS_ROOT / "index.md").read_text()
+
+    assert "\n# Kubetorch Documentation\n" in source
+    assert 'class="kt-hero-heading" aria-hidden="true"' in source
