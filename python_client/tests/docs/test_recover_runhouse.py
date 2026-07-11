@@ -3,8 +3,7 @@ from scripts.docs.recover_runhouse import extract_main_markdown, wayback_url
 
 def test_wayback_url_pins_timestamp_and_uses_identity_replay():
     assert wayback_url("/kubetorch/guides/summary", "20251010000215") == (
-        "https://web.archive.org/web/20251010000215id_/"
-        "https://www.run.house/kubetorch/guides/summary"
+        "https://web.archive.org/web/20251010000215id_/" "https://www.run.house/kubetorch/guides/summary"
     )
 
 

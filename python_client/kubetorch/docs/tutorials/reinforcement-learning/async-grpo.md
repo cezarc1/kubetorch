@@ -10,7 +10,7 @@ This example demonstrates asynchronous GRPO training, overlapping inference and 
 
 In the context of this example, you can understand Kubetorch as an actor framework.
 The key components are modularized into
-[separate files](https://github.com/run-house/kubetorch-examples/tree/main/reinforcement_learning/async_grpo)
+[separate files](https://github.com/cezarc1/kubetorch/tree/main/examples/tutorials/reinforcement_learning/async_grpo)
 not shown here:
 - `inference.py`: vLLM-based inference with dynamic LoRA weight loading
 - `trainer.py`: DDP-based training with LoRA and weight publishing

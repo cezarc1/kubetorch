@@ -11,7 +11,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES_ROOT = REPO_ROOT / "examples/tutorials"
 TEXT_SUFFIXES = {".md", ".py", ".txt", ".yaml", ".yml"}
-STALE_REFERENCES = ("https://www.run.house", "ghcr.io/run-house")
+STALE_REFERENCES = (
+    "https://www.run.house",
+    "ghcr.io/run-house",
+    "github.com/run-house/kubetorch-examples",
+)
 
 
 @dataclass(frozen=True)
@@ -60,15 +64,18 @@ def find_compatibility_issues(
                     )
 
         attribution_only = (
-            "github.com/run-house/kubetorch-examples" in text
-            and not any(reference in text for reference in STALE_REFERENCES)
+            path.name == "README.md"
+            and "original" in text.lower()
+            and "github.com/run-house/kubetorch-examples" in text
         )
-        if not attribution_only:
-            for reference in STALE_REFERENCES:
-                if reference in text:
-                    issues.append(
-                        CompatibilityIssue(path, f"stale service reference: {reference}")
-                    )
+        for reference in STALE_REFERENCES:
+            if reference in text and not (
+                attribution_only
+                and reference == "github.com/run-house/kubetorch-examples"
+            ):
+                issues.append(
+                    CompatibilityIssue(path, f"stale service reference: {reference}")
+                )
     return issues
 
 

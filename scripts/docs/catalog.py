@@ -36,6 +36,7 @@ class Tutorial:
     hardware: list[str]
     validation: Validation
     video_id: str | None = None
+    smoke_command: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -101,7 +102,9 @@ def load_catalog(path: Path, *, repo_root: Path) -> Catalog:
                 f"invalid validation state for {tutorial.id}: {tutorial.validation.state}"
             )
         if not tutorial.slug.startswith("tutorials/"):
-            raise CatalogError(f"tutorial slug must begin with tutorials/: {tutorial.slug}")
+            raise CatalogError(
+                f"tutorial slug must begin with tutorials/: {tutorial.slug}"
+            )
         if tutorial.video_id and any(char.isspace() for char in tutorial.video_id):
             raise CatalogError(f"invalid YouTube id for {tutorial.id}")
 

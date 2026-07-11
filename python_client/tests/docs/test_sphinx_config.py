@@ -10,8 +10,7 @@ def _redirect_keys() -> set[str]:
     tree = ast.parse((DOCS_ROOT / "conf.py").read_text())
     for node in tree.body:
         if isinstance(node, ast.Assign) and any(
-            isinstance(target, ast.Name) and target.id == "redirects"
-            for target in node.targets
+            isinstance(target, ast.Name) and target.id == "redirects" for target in node.targets
         ):
             return set(ast.literal_eval(node.value))
     raise AssertionError("conf.py does not define redirects")

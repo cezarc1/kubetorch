@@ -58,6 +58,7 @@ class BERTTrainer:
         self.batch_size = batch_size
         self.checkpoint_dir = Path(checkpoint_dir)
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        self.checkpoint_key = "dynamic-world-size/berttrain.pt"
 
         self.model = None
         self.tokenizer = None
@@ -74,7 +75,7 @@ class BERTTrainer:
         )
         self.dataset = self._load_dataset()
         self.distributed_shuffled_dataset = None
-        # Use tensors for epoch and loss so they're backed by server memory
+        # Keep epoch and loss on-device so every worker can synchronize them.
         self.epoch_tensor = torch.tensor([0], dtype=torch.long, device="cuda")
         self.loss_tensor = torch.tensor([0.0], dtype=torch.float32, device="cuda")
 
@@ -104,37 +105,6 @@ class BERTTrainer:
         self._sync_after_restart()
 
         self.model = DDP(self.model, device_ids=[self.device])
-
-        # Persist model state to object store for fault tolerance
-        # The returned dict contains tensors backed by the server's memory
-        model_state = (
-            self.model.module.state_dict()
-            if hasattr(self.model, "module")
-            else self.model.state_dict()
-        )
-
-        # Store everything as tensors - epoch and loss will auto-update in server memory
-        checkpoint_to_store = {
-            "model_state_dict": model_state,
-            "epoch": self.epoch_tensor,
-            "loss": self.loss_tensor,
-        }
-
-        # Get back server-backed versions
-        persisted_checkpoint = kt.vput("berttrain", checkpoint_to_store)
-
-        # Load the server-backed state dict into the model
-        # This ensures the model uses tensors owned by the server process
-        if hasattr(self.model, "module"):
-            self.model.module.load_state_dict(persisted_checkpoint["model_state_dict"])
-        else:
-            self.model.load_state_dict(persisted_checkpoint["model_state_dict"])
-
-        # Update our local references to use server-backed tensors
-        self.epoch_tensor = persisted_checkpoint["epoch"]
-        self.loss_tensor = persisted_checkpoint["loss"]
-
-        print(f"Rank {self.rank}: Model state persisted to object store")
         self.optimizer = torch.optim.AdamW(
             self.model.parameters(), lr=self.learning_rate
         )
@@ -200,6 +170,27 @@ class BERTTrainer:
             drop_last=True,  # Drop last batch if incomplete for DDP
         )
 
+    def _save_checkpoint(self):
+        """Persist the rank-zero checkpoint through the current file data store API."""
+        if self.rank != 0:
+            return
+
+        model = self.model.module if hasattr(self.model, "module") else self.model
+        checkpoint_path = self.checkpoint_dir / "berttrain.pt"
+        torch.save(
+            {
+                "model_state_dict": model.state_dict(),
+                "epoch": int(self.epoch_tensor.item()),
+                "loss": float(self.loss_tensor.item()),
+            },
+            checkpoint_path,
+        )
+        kt.put(self.checkpoint_key, checkpoint_path, force=True)
+        print(
+            f"Rank {self.rank}: Persisted epoch {self.epoch_tensor.item()} "
+            f"to kt://{self.checkpoint_key}"
+        )
+
     def _sync_after_restart(self):
         """Synchronizes model weights across ranks after world size changes.
 
@@ -207,15 +198,21 @@ class BERTTrainer:
         have consistent model weights by finding the rank with the most recent state
         from the object store and broadcasting its weights to all other ranks.
         """
-        # Pop from object store to get owned tensors (all ranks do this)
-        # This transfers ownership from store to this process, enabling broadcast
-        checkpoint = kt.pop("berttrain", default=None)
+        checkpoint_path = self.checkpoint_dir / f"berttrain-rank-{self.rank}.pt"
+        try:
+            kt.get(self.checkpoint_key, checkpoint_path, force=True)
+            checkpoint = torch.load(checkpoint_path, map_location=self.device)
+        except kt.DataStoreError:
+            checkpoint = None
 
-        if checkpoint is not None:
+        if checkpoint:
             self.model.load_state_dict(checkpoint["model_state_dict"])
-            # These are now regular tensors owned by this process
-            self.epoch_tensor = checkpoint["epoch"]
-            self.loss_tensor = checkpoint["loss"]
+            self.epoch_tensor = torch.tensor(
+                [checkpoint["epoch"]], dtype=torch.long, device=self.device
+            )
+            self.loss_tensor = torch.tensor(
+                [checkpoint["loss"]], dtype=torch.float32, device=self.device
+            )
 
             # Read the current epoch value from the tensor
             current_epoch = self.epoch_tensor.item()
@@ -224,9 +221,10 @@ class BERTTrainer:
             )
         else:
             print(f"Rank {self.rank}: No state found in object store")
-            # Initialize tensors if not found
-            self.epoch_tensor = torch.tensor([0], dtype=torch.long, device="cuda")
-            self.loss_tensor = torch.tensor([0.0], dtype=torch.float32, device="cuda")
+            self.epoch_tensor = torch.tensor([0], dtype=torch.long, device=self.device)
+            self.loss_tensor = torch.tensor(
+                [0.0], dtype=torch.float32, device=self.device
+            )
 
         # ## Finding the Most Recent State
         # Get max epoch across all ranks to identify who has the latest checkpoint
@@ -339,6 +337,8 @@ class BERTTrainer:
             print(
                 f"Rank {self.rank}: Epoch {self.epoch_tensor.item()} complete, Avg Loss: {avg_epoch_loss:.4f}"
             )
+            self._save_checkpoint()
+            torch.distributed.barrier()
 
         return {
             "rank": self.rank,

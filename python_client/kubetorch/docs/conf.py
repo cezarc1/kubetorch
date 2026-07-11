@@ -42,7 +42,7 @@ autodoc_default_flags = ["members", "show-inheritance"]
 autodoc_member_order = "bysource"
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "README.md", "Thumbs.db", ".DS_Store"]
 myst_enable_extensions = ["colon_fence", "deflist"]
 
 markdown_http_base = "/docs/guide"

@@ -10,7 +10,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from scripts.docs.catalog import Tutorial, load_catalog
+from scripts.docs.catalog import load_catalog, Tutorial
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -41,9 +41,7 @@ def _code_block(lines: list[str]) -> str:
 def _status_panel(tutorial: Tutorial) -> str:
     state = tutorial.validation.state.capitalize()
     requirements = ", ".join(f"`{item}`" for item in tutorial.hardware)
-    source_url = (
-        "https://github.com/cezarc1/kubetorch/blob/main/" + tutorial.source
-    )
+    source_url = "https://github.com/cezarc1/kubetorch/blob/main/" + tutorial.source
     detail = {
         "validated": "Executed against the recorded fork version and hardware.",
         "adapted": "Updated for the current fork and checked statically; cluster execution is not yet recorded.",
@@ -151,7 +149,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--write", action="store_true", help="write generated tutorials")
-    mode.add_argument("--check", action="store_true", help="fail if generated tutorials drift")
+    mode.add_argument(
+        "--check", action="store_true", help="fail if generated tutorials drift"
+    )
     args = parser.parse_args()
 
     drift = sync_outputs(build_outputs(), DOCS_ROOT, check=args.check)

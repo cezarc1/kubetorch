@@ -76,7 +76,7 @@ if __name__ == "__main__":
     )
 
     # Send the function, and setup Ray on the compute
-    remote_inference = kt.function(inference_dlrm).to(gpu_compute)
+    remote_inference = kt.fn(inference_dlrm).to(compute)
 
     # Call the inference which writes the results out to a S3 bucket
     remote_inference(
@@ -88,4 +88,4 @@ if __name__ == "__main__":
         write_s3_path="s3://rh-demo-external/dlrm-training-example/predictions/",
     )
 
-    gpu_compute.teardown()
+    compute.teardown()

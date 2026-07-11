@@ -22,6 +22,29 @@ def test_repository_catalog_covers_recovered_routes_and_tutorials():
     assert all((REPO_ROOT / tutorial.source).is_file() for tutorial in catalog.tutorials)
 
 
+def test_every_literate_example_is_cataloged():
+    catalog = load_catalog(CATALOG_PATH, repo_root=REPO_ROOT)
+    examples_root = REPO_ROOT / "examples/tutorials"
+    literate_sources = {
+        str(path.relative_to(REPO_ROOT)) for path in examples_root.rglob("*.py") if path.read_text().startswith("# # ")
+    }
+
+    assert {tutorial.source for tutorial in catalog.tutorials} == literate_sources
+
+
+def test_every_route_replacement_is_a_real_sphinx_document():
+    catalog = load_catalog(CATALOG_PATH, repo_root=REPO_ROOT)
+    docs_root = REPO_ROOT / "python_client/kubetorch/docs"
+    docnames = {
+        str(path.relative_to(docs_root).with_suffix(""))
+        for suffix in ("*.md", "*.rst")
+        for path in docs_root.rglob(suffix)
+        if path.name != "README.md"
+    }
+
+    assert {route.replacement for route in catalog.routes} <= docnames
+
+
 def test_catalog_rejects_duplicate_tutorial_ids(tmp_path):
     data = yaml.safe_load(CATALOG_PATH.read_text())
     data["tutorials"].append(data["tutorials"][0])
@@ -40,4 +63,3 @@ def test_catalog_rejects_missing_example_source(tmp_path):
 
     with pytest.raises(CatalogError, match="source does not exist"):
         load_catalog(missing_source_catalog, repo_root=REPO_ROOT)
-

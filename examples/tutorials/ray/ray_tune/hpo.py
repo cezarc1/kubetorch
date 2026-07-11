@@ -71,7 +71,7 @@ def ray_tune_hpo(num_samples=4, max_concurrent_trials=2):
 # In code, we will define the compute our Ray Tune program will run on, dispatch our function to
 # the compute and execute it normally, as if it were local, propagating the values we want
 # to the remote function call. You must have Kuberay installed on your cluster, the installation
-# instructions with Kubetorch [are here](https://www.run.house/kubetorch/installation#ray-support-optional).
+# instructions with Kubetorch [are here](https://cezarc1.github.io/kubetorch/start/installation.html).
 def find_minimum():
     ray_compute = kt.Compute(
         cpus="2", memory="3Gi", image=kt.Image(image_id="rayproject/ray")

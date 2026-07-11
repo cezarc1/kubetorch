@@ -1,5 +1,5 @@
 # # Demonstrating Fault Tolerance with Automatic Try-Catch
-# [Kubetorch](https://www.run.house/kubetorch/introduction) gives you powerful programmatic fault tolerance over your code, and in this example, we
+# [Kubetorch](https://cezarc1.github.io/kubetorch/start/introduction.html) gives you powerful programmatic fault tolerance over your code, and in this example, we
 # show the common case where you might hit OOMs on your remote processes, and it either takes a human to
 # manually restart or you end up overprovisioning every job to avoid the errors.
 #

@@ -1,0 +1,57 @@
+name: Documentation Tutorial Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      tutorial_id:
+        description: Tutorial to execute against the configured cluster
+        required: true
+        type: choice
+        options:
+          - mnist
+          - vllm-hello-world
+          - pytorch-ddp
+          - basic-grpo
+          - async-grpo
+          - verl-grpo
+      hardware:
+        description: Hardware profile recorded with validation evidence
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    # This label intentionally requires an operator-managed runner with a
+    # working kubeconfig and the selected tutorial's local Python dependencies.
+    runs-on: [self-hosted, kubetorch]
+    timeout-minutes: 180
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install the fork client
+        run: python -m pip install -e "./python_client[client]"
+
+      - name: Run selected tutorial
+        id: smoke
+        continue-on-error: true
+        env:
+          KT_VALIDATION_HARDWARE: ${{ inputs.hardware }}
+        run: |
+          python scripts/docs/run_smoke.py \
+            "${{ inputs.tutorial_id }}" \
+            --evidence "validation-evidence/${{ inputs.tutorial_id }}.json"
+
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tutorial-validation-${{ inputs.tutorial_id }}-${{ github.run_id }}
+          path: validation-evidence/
+
+      - name: Propagate tutorial failure
+        if: steps.smoke.outcome == 'failure'
+        run: exit 1

@@ -11,7 +11,7 @@ To illustrate how to set up Airflow + Kubetorch on a fresh cluster, we'll walk t
 You will need a Kubernetes cluster, a local Kubeconfig, and a place to store Docker images.
 
 1. Replace `<KT_VERSION>`, `KT_LICENSE_KEY`, and `<API_KEY>` in the URL in `docker/requirements.txt`.
-   You can also directly use the URL provided in our [Onboarding Guide](https://www.run.house/kubetorch/get-started)
+   You can also use the chart and values from the maintained [installation guide](https://cezarc1.github.io/kubetorch/start/installation.html).
 2. Build the Docker image, tagging an appropriate location in your registry (e.g. ECR, GCR). This should be accessible from your Kubernetes cluster.
    ```bash
    docker build --platform linux/amd64 -t your-registry/kt-airflow-custom:latest -f docker/Dockerfile .

@@ -11,10 +11,7 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 
 
 def wayback_url(path: str, timestamp: str) -> str:
-    return (
-        f"https://web.archive.org/web/{timestamp}id_/"
-        f"https://www.run.house{path}"
-    )
+    return f"https://web.archive.org/web/{timestamp}id_/" f"https://www.run.house{path}"
 
 
 def _inline(node: Tag | NavigableString) -> str:
@@ -80,7 +77,9 @@ def extract_main_markdown(html: str) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("path", help="original path, for example /kubetorch/guides/summary")
+    parser.add_argument(
+        "path", help="original path, for example /kubetorch/guides/summary"
+    )
     parser.add_argument("timestamp", help="14-digit Wayback timestamp")
     parser.add_argument("output", type=Path, help="Markdown output path")
     args = parser.parse_args()

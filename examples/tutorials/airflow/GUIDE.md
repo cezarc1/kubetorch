@@ -5,11 +5,11 @@ the work of training a basic Torch model to a remote GPU. We'll walk through a *
 
 Beyond standard classes and methods for our training pipeline, you'll see that we only need minimal code in the form of task callables to utilize Kubetorch dispatching from Airflow. The same structure can be used to improve development velocity, research-to-production, and fault tolerance with any pipeline orchestrator (e.g. Argo, Dagster, Prefect, Flyte) without requiring any direct integration.
 
-To test this out for yourself, visit the [Kubetorch Examples](https://github.com/run-house/kubetorch-examples/tree/main/airflow) repository on Github. With minor adjustments, you should be able to deploy the DAG to your own Airflow installation on Kubernetes.
+The complete source for this tutorial lives beside this guide under `examples/tutorials/airflow`. With minor adjustments, you should be able to deploy the DAG to your own Airflow installation on Kubernetes.
 
 ## Kubetorch + Airflow
 
-[Apache Airflow](https://airflow.apache.org/) is widely used in ML, but it comes with plenty of problems, especially when it comes to debugging workflows and translating between research and production. **Kubetorch** enables fast and efficient ML development right inside your Kubernetes cluster and can be deployed as-is in your Airflow pipelines, closing the research-to-production gap. You can learn more about Kubetorch in our [documentation](https://www.run.house/kubetorch/introduction).
+[Apache Airflow](https://airflow.apache.org/) is widely used in ML, but it comes with plenty of problems, especially when it comes to debugging workflows and translating between research and production. **Kubetorch** enables fast and efficient ML development right inside your Kubernetes cluster and can be deployed as-is in your Airflow pipelines, closing the research-to-production gap. You can learn more about Kubetorch in the maintained [documentation](https://cezarc1.github.io/kubetorch/start/introduction.html).
 
 ### Example Usage Pattern
 
@@ -53,12 +53,12 @@ airflow/
 
 Ideally, you should install Kubetorch and Airflow in the same Kubernetes cluster. This will simplify connections between services and improve overall reliability.
 
-If you do not already have Airflow running on your own Kubernetes cluster, you can navigate to the [`README`](https://github.com/run-house/kubetorch-examples/tree/main/airflow) in this example for instructions on a basic install.
+If you do not already have Airflow running on your own Kubernetes cluster, use the [`README`](README.md) in this example for basic installation notes.
 
 Here are the necessary steps to run Airflow with Kubetorch:
 
-- **Install Airflow (Optional)** - If you are starting fresh, you'll first need to install Airflow on your cluster. Take a look at our [`README`](https://github.com/run-house/kubetorch-examples/tree/main/airflow) for instructions on building a custom Docker image with your DAGs, or visit Airflow's [installation docs](https://airflow.apache.org/docs/apache-airflow/3.0.3/installation/index.html)
-- **Install Kubetorch** - Please visit [our documentation](https://www.run.house/kubetorch/installation) for instructions on installing Kubetorch on your cluster.
+- **Install Airflow (Optional)** - If you are starting fresh, you'll first need to install Airflow on your cluster. Use this example's [`README`](README.md) for instructions on building a custom Docker image with your DAGs, or visit Airflow's [installation docs](https://airflow.apache.org/docs/apache-airflow/3.0.3/installation/index.html).
+- **Install Kubetorch** - Follow the maintained [installation guide](https://cezarc1.github.io/kubetorch/start/installation.html).
 - **Update Service Account Permissions** - Your Airflow workers will need a set of permissions to run Kubetorch methods. By installing Kubetorch, you'll have already created the appropriate roles and you can apply them to your worker's service account via the YAML file in this example.
   ```bash
   # Be sure to update the YAML file with your service account name and namespace
@@ -148,7 +148,7 @@ class SimpleTrainer:
 
 ```
 
-You can see the full definition of `SimpleTrainer` in the [`trainer.py`](https://github.com/run-house/kubetorch-examples/tree/main/airflow/dags/kubetorch_example/trainer.py) file.
+You can see the full definition of `SimpleTrainer` in [`trainer.py`](dags/kubetorch_example/trainer.py).
 
 ## Python Callables for Tasks
 
@@ -246,7 +246,7 @@ def deploy_inference(**kwargs):
 
 ### Testing and Deploying
 
-The [`tasks.py`](https://github.com/run-house/kubetorch-examples/tree/main/airflow/dags/kubetorch_example/tasks.py) file includes the full implementation for each of the Airflow tasks above. For local testing, you can run these methods by adding code to call each in main.
+The [`tasks.py`](dags/kubetorch_example/tasks.py) file includes the full implementation for each of the Airflow tasks above. For local testing, you can run these methods by adding code to call each in main.
 
 ```python
 # Swap out the method with any of the three tasks defined above.

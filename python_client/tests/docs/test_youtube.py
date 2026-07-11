@@ -9,7 +9,7 @@ def test_youtube_html_uses_privacy_enhanced_embed_and_fallback_link():
     assert "https://www.youtube-nocookie.com/embed/abc_123-X" in rendered
     assert "https://www.youtube.com/watch?v=abc_123-X" in rendered
     assert "Training &lt;demo&gt;" in rendered
-    assert "loading=\"lazy\"" in rendered
+    assert 'loading="lazy"' in rendered
 
 
 @pytest.mark.parametrize("video_id", ["", "has spaces", "../escape", "a" * 65])

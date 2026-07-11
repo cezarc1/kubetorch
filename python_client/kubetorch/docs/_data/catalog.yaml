@@ -143,6 +143,7 @@ tutorials:
     slug: tutorials/distributed/pytorch-ddp
     video_id: 5nRRaxZJnUg
     hardware: [Multi-node GPU]
+    smoke_command: [python, examples/tutorials/pytorch_ddp/pytorch_ddp.py]
     validation: {state: adapted, fork_version: 0.5.2}
   - id: resnet-ddp
     title: ResNet-152 Training with PyTorch Distributed
@@ -186,6 +187,7 @@ tutorials:
     source: examples/tutorials/reinforcement_learning/async_grpo/gsm8k_async_simple.py
     slug: tutorials/reinforcement-learning/async-grpo
     hardware: [Multi-GPU]
+    smoke_command: [python, examples/tutorials/reinforcement_learning/async_grpo/gsm8k_async_simple.py]
     validation: {state: adapted, fork_version: 0.5.2}
   - id: basic-grpo
     title: Illustrative GRPO Training with Kubetorch
@@ -193,6 +195,7 @@ tutorials:
     source: examples/tutorials/reinforcement_learning/basic_grpo/gsm8k.py
     slug: tutorials/reinforcement-learning/basic-grpo
     hardware: [Multi-GPU]
+    smoke_command: [python, examples/tutorials/reinforcement_learning/basic_grpo/gsm8k.py]
     validation: {state: adapted, fork_version: 0.5.2}
   - id: trl-sandbox
     title: RL with TRL and a SWE-ReX Code Sandbox
@@ -209,6 +212,7 @@ tutorials:
     slug: tutorials/reinforcement-learning/verl-grpo
     video_id: -oz49qt_uSM
     hardware: [Ray, Multi-GPU]
+    smoke_command: [python, examples/tutorials/reinforcement_learning/verl_training/verl_train.py]
     validation: {state: adapted, fork_version: 0.5.2}
   - id: temporal-xgboost
     title: GPU Training with Temporal and Kubetorch
@@ -237,6 +241,7 @@ tutorials:
     source: examples/tutorials/torchvision/basic_training_example.py
     slug: tutorials/training/mnist
     hardware: [GPU]
+    smoke_command: [python, examples/tutorials/torchvision/basic_training_example.py]
     validation: {state: adapted, fork_version: 0.5.2}
   - id: openai-oss-120b
     title: Serve OpenAI GPT-OSS 120B
@@ -274,6 +279,7 @@ tutorials:
     slug: tutorials/inference/vllm-hello-world
     video_id: 8slAR7459X4
     hardware: [GPU]
+    smoke_command: [python, examples/tutorials/vllm_inference/llama.py]
     validation: {state: adapted, fork_version: 0.5.2}
   - id: vllm-distributed
     title: vLLM Tensor and Pipeline Parallelism

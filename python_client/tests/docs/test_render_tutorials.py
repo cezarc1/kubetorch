@@ -1,6 +1,6 @@
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 from scripts.docs.catalog import Tutorial, Validation
 from scripts.docs.render_tutorials import render_literate_source, sync_outputs

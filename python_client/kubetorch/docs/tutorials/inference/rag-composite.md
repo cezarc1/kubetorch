@@ -38,7 +38,8 @@ The application exposes two main endpoints:
      - Generate a response using the LLM (Llama 3) service
      - Output the response with source URLs and question input
 
-![Graphic displaying the steps of indexing data and the retrieval and generation process](https://runhouse-tutorials.s3.amazonaws.com/indexing-retrieval-generation.png)
+**RAG pipeline:** source documents → split into chunks → embed and store →
+retrieve related chunks → generate a grounded answer.
 
 Note: Some of the steps in this example could also be accomplished with platforms like OpenAI and
 tools such as LangChain, but we break out the components explicitly to fully illustrate each step and make the
@@ -123,7 +124,7 @@ from fastapi import Body, FastAPI, HTTPException
 ```
 ### Define the LLM (LLama) Service
 We similarly define a `LlamaModel` class that uses kubetorch decorators to convert it into a deployable service.
-The `LlamaModel` class is detailed in the [LLM Inference Example](https://www.run.house/examples/vllm-llama3-inference), so
+The `LlamaModel` class is detailed in the [LLM Inference Example](https://cezarc1.github.io/kubetorch/tutorials/inference/vllm-hello-world.html), so
 here we simply reimport the `LlamaModel` class from that example. For more details on the `LlamaModel` implementation,
 see that example.
 ```python

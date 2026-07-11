@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from scripts.docs.check_example_compat import collect_kt_attributes, find_compatibility_issues
 
 
@@ -26,11 +24,17 @@ def test_compatibility_check_reports_removed_api_and_stale_links(tmp_path):
     assert any("www.run.house" in issue.message for issue in issues)
 
 
+def test_compatibility_check_reports_old_example_repository_links(tmp_path):
+    guide = tmp_path / "GUIDE.md"
+    guide.write_text("See https://github.com/run-house/kubetorch-examples/tree/main/airflow.\n")
+
+    issues = find_compatibility_issues([guide], public_names=set())
+
+    assert any("github.com/run-house/kubetorch-examples" in issue.message for issue in issues)
+
+
 def test_compatibility_check_allows_attribution_links(tmp_path):
     readme = tmp_path / "README.md"
-    readme.write_text(
-        "Originally published at https://github.com/run-house/kubetorch-examples.\n"
-    )
+    readme.write_text("Originally published at https://github.com/run-house/kubetorch-examples.\n")
 
     assert find_compatibility_issues([readme], public_names=set()) == []
-

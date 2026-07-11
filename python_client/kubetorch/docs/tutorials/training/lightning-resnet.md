@@ -230,7 +230,7 @@ class ResNetTrainer:
 ## Launch Compute and Run the Training
 We will now dispatch and run the ResNet training on multiple nodes. The data we use here is a
 sampled, preprocessed set of images from the ImageNet dataset. You can see the preprocessing
-script at [imagenet_preproc.py](https://github.com/run-house/kubetorch-examples/blob/main/pytorch_ddp/resnet/imagenet_preproc.py).
+script at [imagenet_preproc.py](https://github.com/cezarc1/kubetorch/blob/main/examples/tutorials/pytorch_ddp/resnet/imagenet_preproc.py).
 ```python
 def train(init_args, data_args, epochs):
     import logging
