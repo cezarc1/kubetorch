@@ -76,6 +76,17 @@ def test_sync_outputs_check_mode_detects_drift(tmp_path):
     assert output.read_text() == "fresh\n"
 
 
+def test_sync_outputs_preserves_hand_authored_indexes(tmp_path):
+    destination = tmp_path / "docs"
+    index = destination / "tutorials/training/index.md"
+    index.parent.mkdir(parents=True)
+    index.write_text("# Training\n")
+
+    assert sync_outputs({}, destination, check=True) == []
+    assert sync_outputs({}, destination, check=False) == []
+    assert index.read_text() == "# Training\n"
+
+
 def test_renderer_cli_runs_from_repository_root():
     result = subprocess.run(
         [sys.executable, "scripts/docs/render_tutorials.py", "--check"],

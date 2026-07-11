@@ -139,7 +139,7 @@ def sync_outputs(
     generated_root = destination / "tutorials"
     if generated_root.exists():
         for path in generated_root.rglob("*.md"):
-            if path not in expected:
+            if path.name != "index.md" and path not in expected:
                 if check:
                     drift.append(path)
                 else:
