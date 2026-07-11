@@ -51,11 +51,24 @@ pip install -e ".[dev]"
 Docs source code is located in `python_client/kubetorch/docs/`. To build and review docs locally:
 
 ```
-cd python_client
-pip install -e ".[docs]"
-cd kubetorch/docs/
-make clean html
+uv venv
+source .venv/bin/activate
+uv pip install -e "./python_client[client,docs]" pytest pytest-asyncio
+uv pip install -r python_client/kubetorch/docs/requirements.txt
+
+python scripts/docs/render_tutorials.py --check
+python scripts/docs/check_example_compat.py
+python -m compileall -q examples/tutorials
+python -m pytest -q python_client/tests/docs --level unit
+python -m sphinx -W --keep-going -b html \
+  python_client/kubetorch/docs \
+  python_client/kubetorch/docs/_build/html
 ```
+
+Open `python_client/kubetorch/docs/_build/html/index.html` to review the site.
+When a literate example changes, run
+`python scripts/docs/render_tutorials.py --write` and commit the regenerated
+MyST page with the source change.
 
 ### Examples
 Example code for this fork lives under `examples/` in this repository. Please follow the process above to create pull requests.

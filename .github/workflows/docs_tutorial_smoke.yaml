@@ -1,0 +1,73 @@
+name: Documentation Tutorial Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      tutorial_id:
+        description: Tutorial to execute against the configured cluster
+        required: true
+        type: choice
+        options:
+          - mnist
+          - vllm-hello-world
+          - pytorch-ddp
+          - basic-grpo
+          - async-grpo
+          - verl-grpo
+      hardware:
+        description: Hardware profile recorded with validation evidence
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: github.ref == 'refs/heads/main'
+    # Cluster credentials are supplied only by the main-restricted environment;
+    # no repository branch executes on a credentialed self-hosted machine.
+    runs-on: ubuntu-latest
+    environment: tutorial-validation
+    timeout-minutes: 180
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Configure cluster credentials
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+        run: |
+          test -n "$KUBECONFIG_B64"
+          mkdir -p "$HOME/.kube"
+          printf '%s' "$KUBECONFIG_B64" | base64 --decode > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Install the fork client
+        run: python -m pip install -e "./python_client[client]"
+
+      - name: Run selected tutorial
+        id: smoke
+        continue-on-error: true
+        env:
+          KT_VALIDATION_HARDWARE: ${{ inputs.hardware }}
+        run: |
+          python scripts/docs/run_smoke.py \
+            "${{ inputs.tutorial_id }}" \
+            --evidence "validation-evidence/${{ inputs.tutorial_id }}.json"
+
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tutorial-validation-${{ inputs.tutorial_id }}-${{ github.run_id }}
+          path: validation-evidence/
+
+      - name: Propagate tutorial failure
+        if: steps.smoke.outcome == 'failure'
+        run: exit 1

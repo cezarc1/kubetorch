@@ -3,7 +3,7 @@ Python API
 
 The API Reference provides detailed information about the Kubetorch Python API and CLI commands.
 
-If you are just getting started with Kubetorch, first read the local guides in this documentation set, especially `Batch Runs for Agent Operators <../guides/batch_runs.html>`_.
+If you are just getting started with Kubetorch, first read the local guides in this documentation set, especially :doc:`Batch Runs for Agent Operators </guides/batch_runs>`.
 
 Compute
 -------

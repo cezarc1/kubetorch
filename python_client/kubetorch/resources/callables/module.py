@@ -316,7 +316,7 @@ class Module:
     @property
     def serialization(self):
         """Default serialization format for this module.
-        More info in the `Call Modes Guide <https://www.run.house/kubetorch/concepts/call-modes>`__."""
+        More info in the :doc:`Call Modes Guide </concepts/call-modes>`."""
         return self._serialization
 
     @serialization.setter

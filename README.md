@@ -195,6 +195,10 @@ Helm release or pass `--image-pull-secret` to `kt run`.
   testing source sync, logs, notes, artifacts, and small eval outputs.
 - `examples/qwen3_asr_orin/`: Jetson/Orin Qwen3-ASR profiling and export
   helpers.
+- `examples/tutorials/`: the maintained Runhouse tutorial catalog, including
+  MNIST, PyTorch DDP, Ray, fault tolerance, vLLM, GRPO, VeRL, Airflow, and
+  Temporal examples. The corresponding guides are published in the
+  [tutorial documentation](https://cezarc1.github.io/kubetorch/tutorials/).
 
 Use these after the smoke test passes. They exercise more realistic dependency,
 image, GPU, and data paths.

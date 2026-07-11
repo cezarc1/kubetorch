@@ -456,7 +456,7 @@ def test_cli_batch_run_help_guides_agent_operators():
 def test_batch_runs_docs_page_is_linked_and_agent_oriented():
     docs_root = Path(__file__).resolve().parents[1] / "kubetorch" / "docs"
     guide_path = docs_root / "guides" / "batch_runs.rst"
-    index_path = docs_root / "index.rst"
+    index_path = docs_root / "index.md"
 
     guide = guide_path.read_text()
     index = index_path.read_text()
