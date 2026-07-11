@@ -1,0 +1,84 @@
+# Preprocessing Data for DLRM
+```{admonition} Reference
+:class: kt-status kt-status-reference
+
+**Reference** for Kubetorch `0.5.2`. Requires external infrastructure or serves as supporting reference code.
+
+Requires: `Ray`, `S3`. [View source](https://github.com/cezarc1/kubetorch/blob/main/examples/tutorials/ray/dlrm-movielens/dlrm_data_prepoc.py).
+```
+The following function until line 35 is regular, undecorated Python that uses Ray Data for processing.
+It is sent to the remote compute for execution.
+```python
+import kubetorch as kt
+import ray
+import ray.data
+from ray.data.preprocessors import StandardScaler
+
+
+def preprocess_data(s3_read_path, s3_write_path, filename):
+    # Load datasets using Ray Data
+    ratings = ray.data.read_csv(f"{s3_read_path}/{filename}")
+
+    # Preprocess data - standard scaler as an example
+    ratings = StandardScaler(columns=["rating"]).fit_transform(ratings)
+
+    # Split the dataset into train, eval, and test sets
+    train_ds, remaining_ds = ratings.train_test_split(
+        test_size=0.3, shuffle=True, seed=42
+    )
+    eval_ds, test_ds = remaining_ds.train_test_split(
+        test_size=0.5, shuffle=True, seed=42
+    )
+    print(train_ds.schema())
+
+    # Save processed data to S3
+    def write_to_s3(ds, s3_path):
+        print("Writing: ", s3_path)
+        ds.write_parquet(s3_path)
+        print(f"Processed data saved to {s3_path}")
+
+    datasets = {"train": train_ds, "eval": eval_ds, "test": test_ds}
+
+    for dataset_name, dataset in datasets.items():
+        s3_path = f"{s3_write_path}/{dataset_name}/processed_movielens_data.parquet"
+        write_to_s3(dataset, s3_path)
+```
+## Launch compute and execute
+Here, we launch compute, dispatch the preprocessing function to the compute, and call that function.
+Whether launching elastic compute or from Kubernetes, Kubetorch wires up the Ray cluster for you and downs the cluster when complete.
+Kubetorch syncs the code across and makes it a callable "service" on the remote.
+This code can be identically placed within an orchestrator (e.g. my_pipeline.yaml) and identical execution will occur.
+```python
+if __name__ == "__main__":
+    workers = 4
+    # Define an image which will be installed on each node of compute.
+    # An image can include a base Docker image, package installations, setup commands, env vars, and secrets.
+    img = kt.Image(image_id="rayproject/ray").pip_install(
+        [
+            "'ray[data]'",
+            "pandas",
+            "scikit-learn",
+            "awscli",
+        ]
+    )
+
+    # Create compute with 8 CPUs and 32GB of memory
+    compute = kt.Compute(
+        cpus="2", memory="10Gi", image=img, secrets=[kt.secret(provider="aws")]
+    ).distribute(
+        "ray",
+        workers=workers,
+    )
+
+    # Send the preprocess_data function to the remote compute and distribute it with Ray over 4 nodes
+    remote_preprocess = kt.fn(preprocess_data).to(compute)
+
+    # Call the remote function (which uses Ray Data on the Ray cluster we formed)
+    s3_raw = "s3://rh-demo-external/dlrm-training-example/raw_data"
+    filename = "ratings.csv"
+    s3_preprocessed = "s3://rh-demo-external/dlrm-training-example/preprocessed_data"
+
+    remote_preprocess(
+        s3_read_path=s3_raw, s3_write_path=s3_preprocessed, filename=filename
+    )
+```
