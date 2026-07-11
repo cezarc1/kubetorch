@@ -13,6 +13,18 @@ body {
   font-family: "Aptos", "Inter", "Segoe UI", system-ui, sans-serif;
 }
 
+section#kubetorch-documentation > h1:first-child {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 code,
 pre,
 .kt-execution-rail {
@@ -50,7 +62,7 @@ pre,
   text-transform: uppercase;
 }
 
-.kt-hero h1 {
+.kt-hero-heading {
   color: white;
   font-size: clamp(2.1rem, 5.2vw, 4.6rem);
   font-weight: 760;
@@ -60,7 +72,7 @@ pre,
   max-width: 960px;
 }
 
-.kt-hero h1 span {
+.kt-hero-heading span {
   color: #b9fff7;
 }
 
