@@ -13,7 +13,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from scripts.docs.catalog import Tutorial, load_catalog
+from scripts.docs.catalog import load_catalog, Tutorial
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

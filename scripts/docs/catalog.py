@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import yaml
@@ -101,12 +101,26 @@ def load_catalog(path: Path, *, repo_root: Path) -> Catalog:
             raise CatalogError(
                 f"invalid validation state for {tutorial.id}: {tutorial.validation.state}"
             )
-        if not tutorial.slug.startswith("tutorials/"):
-            raise CatalogError(
-                f"tutorial slug must begin with tutorials/: {tutorial.slug}"
-            )
+        slug = PurePosixPath(tutorial.slug)
+        if (
+            slug.is_absolute()
+            or not slug.parts
+            or slug.parts[0] != "tutorials"
+            or ".." in slug.parts
+            or "\\" in tutorial.slug
+        ):
+            raise CatalogError(f"invalid tutorial slug: {tutorial.slug}")
         if tutorial.video_id and any(char.isspace() for char in tutorial.video_id):
             raise CatalogError(f"invalid YouTube id for {tutorial.id}")
+        if tutorial.validation.state == "validated":
+            required = ("date", "hardware", "evidence")
+            missing = [
+                field for field in required if not getattr(tutorial.validation, field)
+            ]
+            if missing:
+                raise CatalogError(
+                    f"validated tutorial {tutorial.id} requires {', '.join(missing)}"
+                )
 
     return Catalog(
         schema_version=raw["schema_version"],

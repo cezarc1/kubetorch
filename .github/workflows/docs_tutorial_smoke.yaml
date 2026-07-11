@@ -24,9 +24,11 @@ permissions:
 
 jobs:
   smoke:
+    if: github.ref == 'refs/heads/main'
     # This label intentionally requires an operator-managed runner with a
     # working kubeconfig and the selected tutorial's local Python dependencies.
     runs-on: [self-hosted, kubetorch]
+    environment: tutorial-validation
     timeout-minutes: 180
     steps:
       - name: Check out repository

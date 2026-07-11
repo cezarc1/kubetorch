@@ -63,3 +63,33 @@ def test_catalog_rejects_missing_example_source(tmp_path):
 
     with pytest.raises(CatalogError, match="source does not exist"):
         load_catalog(missing_source_catalog, repo_root=REPO_ROOT)
+
+
+def test_catalog_rejects_tutorial_slug_traversal(tmp_path):
+    data = yaml.safe_load(CATALOG_PATH.read_text())
+    data["tutorials"][0]["slug"] = "tutorials/../../outside"
+    invalid_catalog = tmp_path / "catalog.yaml"
+    invalid_catalog.write_text(yaml.safe_dump(data, sort_keys=False))
+
+    with pytest.raises(CatalogError, match="invalid tutorial slug"):
+        load_catalog(invalid_catalog, repo_root=REPO_ROOT)
+
+
+@pytest.mark.parametrize("missing", ["date", "hardware", "evidence"])
+def test_validated_tutorials_require_evidence_metadata(tmp_path, missing):
+    data = yaml.safe_load(CATALOG_PATH.read_text())
+    validation = data["tutorials"][0]["validation"]
+    validation.update(
+        {
+            "state": "validated",
+            "date": "2026-07-11",
+            "hardware": "cezar-4090-cluster",
+            "evidence": "validation-evidence/mnist.json",
+        }
+    )
+    del validation[missing]
+    invalid_catalog = tmp_path / "catalog.yaml"
+    invalid_catalog.write_text(yaml.safe_dump(data, sort_keys=False))
+
+    with pytest.raises(CatalogError, match=f"validated tutorial.*{missing}"):
+        load_catalog(invalid_catalog, repo_root=REPO_ROOT)

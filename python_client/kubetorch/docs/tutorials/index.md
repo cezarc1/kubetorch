@@ -46,6 +46,11 @@ Preemption, batch sizing, world-size changes, and compute retries.
 :link-type: doc
 Kubeflow Trainer and Temporal integrations.
 :::
+:::{grid-item-card} Imported source inventory
+:link: source-inventory
+:link-type: doc
+Requirements, configuration, helper modules, and supporting integrations.
+:::
 ::::
 
 ```{toctree}
@@ -57,4 +62,5 @@ inference/index
 distributed/index
 fault-tolerance/index
 orchestration/index
+source-inventory
 ```
