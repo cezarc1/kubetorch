@@ -14,7 +14,11 @@ def test_tutorial_smoke_only_runs_main_in_protected_environment():
     smoke = _workflow("docs_tutorial_smoke.yaml")["jobs"]["smoke"]
 
     assert smoke["if"] == "github.ref == 'refs/heads/main'"
+    assert smoke["runs-on"] == "ubuntu-latest"
     assert smoke["environment"] == "tutorial-validation"
+    assert "self-hosted" not in str(smoke)
+    configure = next(step for step in smoke["steps"] if step["name"] == "Configure cluster credentials")
+    assert configure["env"] == {"KUBECONFIG_B64": "${{ secrets.KUBECONFIG_B64 }}"}
 
 
 def test_pages_write_permissions_are_limited_to_deploy_job():

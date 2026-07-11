@@ -25,14 +25,28 @@ permissions:
 jobs:
   smoke:
     if: github.ref == 'refs/heads/main'
-    # This label intentionally requires an operator-managed runner with a
-    # working kubeconfig and the selected tutorial's local Python dependencies.
-    runs-on: [self-hosted, kubetorch]
+    # Cluster credentials are supplied only by the main-restricted environment;
+    # no repository branch executes on a credentialed self-hosted machine.
+    runs-on: ubuntu-latest
     environment: tutorial-validation
     timeout-minutes: 180
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Configure cluster credentials
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+        run: |
+          test -n "$KUBECONFIG_B64"
+          mkdir -p "$HOME/.kube"
+          printf '%s' "$KUBECONFIG_B64" | base64 --decode > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
 
       - name: Install the fork client
         run: python -m pip install -e "./python_client[client]"
