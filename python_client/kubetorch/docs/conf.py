@@ -41,7 +41,11 @@ autodoc_default_flags = ["members", "show-inheritance"]
 autodoc_member_order = "bysource"
 
 templates_path = ["_templates"]
-html_context = {"default_mode": "light"}
+html_context = {
+    "default_mode": "light",
+    "google_site_verification": os.getenv("GOOGLE_SITE_VERIFICATION", "").strip(),
+    "google_analytics_id": os.getenv("GOOGLE_ANALYTICS_ID", "").strip(),
+}
 exclude_patterns = ["_build", "README.md", "Thumbs.db", ".DS_Store"]
 myst_enable_extensions = ["colon_fence", "deflist"]
 
