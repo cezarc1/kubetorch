@@ -49,7 +49,7 @@ Also assert the page contains `kt run`, `kt runs show RUN_ID`, `kt runs logs RUN
 Run:
 
 ```bash
-pytest -q python_client/tests/docs/test_start_workflow_docs.py
+.venv/bin/python -m pytest -q --level unit python_client/tests/docs/test_start_workflow_docs.py
 ```
 
 Expected: FAIL because the page does not yet contain the identified Python block or end-to-end commands.
@@ -80,7 +80,7 @@ Add launch, inspection, retrieval, and dry-run cleanup commands. Explain that `k
 Run:
 
 ```bash
-pytest -q python_client/tests/docs/test_start_workflow_docs.py
+.venv/bin/python -m pytest -q --level unit python_client/tests/docs/test_start_workflow_docs.py
 ```
 
 Expected: `2 passed`.
@@ -90,8 +90,8 @@ Expected: `2 passed`.
 Run:
 
 ```bash
-pytest -q python_client/tests/docs
-python -m sphinx -W --keep-going -b html python_client/kubetorch/docs /tmp/kubetorch-docs-oled-preview
+.venv/bin/python -m pytest -q --level unit python_client/tests/docs
+.venv/bin/python -m sphinx -W --keep-going -b html python_client/kubetorch/docs /tmp/kubetorch-docs-oled-preview
 ```
 
 Expected: all documentation tests pass and Sphinx exits successfully without warnings.

@@ -62,6 +62,97 @@ kt.fn/kt.cls → .to(compute)           kt run --intent ...
   edit and hot-sync                   notes + artifacts
 ```
 
+## Record and inspect a batch artifact
+
+An artifact record is a pointer, not an upload. Store the result first with
+`kt.put`, then attach its stable URI to the current run with `kt.artifact`.
+
+Create `record_result.py`:
+
+```python
+# record_result.py
+import json
+import os
+from pathlib import Path
+
+import kubetorch as kt
+
+
+def main():
+    run_id = os.environ["KT_RUN_ID"]
+    namespace = os.getenv("KT_NAMESPACE", "kubetorch")
+    metrics = {"accuracy": 0.98, "epochs": 3}
+
+    metrics_path = Path("metrics.json")
+    metrics_path.write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
+
+    artifact_key = f"runs/{run_id}/artifacts/metrics.json"
+    artifact_uri = f"kt://{namespace}/{artifact_key}"
+
+    kt.put(
+        key=artifact_key,
+        src=metrics_path,
+        namespace=namespace,
+        force=True,
+    )
+    kt.artifact(
+        name="metrics",
+        uri=artifact_uri,
+        kind="kt-data-store",
+        metadata={"content_type": "application/json"},
+    )
+    kt.note("Recorded the metrics artifact.")
+    print(f"Recorded {artifact_uri}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+Submit it with a workload image containing Python, Kubetorch, and `rsync`. The
+shell guard stops immediately with that requirement if the variable is unset:
+
+```bash
+: "${KT_WORKLOAD_IMAGE:?Set KT_WORKLOAD_IMAGE to a pullable image containing Python, Kubetorch, and rsync}"
+
+kt run \
+  --name artifact-workflow \
+  --intent "Record and retrieve a metrics artifact" \
+  --namespace kubetorch \
+  --image "$KT_WORKLOAD_IMAGE" \
+  --source-dir . \
+  -- \
+  python record_result.py
+```
+
+`kt run` prints the submitted run ID. Replace `RUN_ID` below with that value to
+inspect the run and its registered references:
+
+```bash
+kt runs show RUN_ID
+kt runs logs RUN_ID
+kt runs artifact list RUN_ID
+```
+
+The artifact list prints
+`kt://kubetorch/runs/RUN_ID/artifacts/metrics.json`. Its data-store key is the
+portion after the namespace, so the result can be restored independently of
+the run record:
+
+```bash
+kt get runs/RUN_ID/artifacts/metrics.json ./retrieved-metrics.json \
+  --namespace kubetorch
+```
+
+When the evidence is no longer needed, preview cleanup before deleting it:
+
+```bash
+kt runs delete RUN_ID --dry-run
+```
+
+The detailed {doc}`../guides/batch_runs` guide covers external artifact URIs,
+operator-added references, and deletion behavior.
+
 ## Production handoff
 
 Because the driver is ordinary Python, the same program can run from CI,
