@@ -33,6 +33,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
     "sphinx_reredirects",
+    "sphinx_sitemap",
     "_ext.json_globaltoc",
 ]
 
@@ -67,6 +68,8 @@ if not tags.has("json"):
     html_theme = "sphinx_book_theme"
 
 html_title = "Kubetorch"
+html_baseurl = "https://cezarc1.github.io/kubetorch/"
+sitemap_url_scheme = "{link}"
 html_theme_options = {
     "repository_url": "https://github.com/cezarc1/kubetorch",
     "repository_branch": "main",
