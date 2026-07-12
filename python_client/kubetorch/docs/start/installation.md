@@ -2,16 +2,11 @@
 
 Kubetorch has two pieces: a Python client in the process where you write or
 orchestrate work, and a Helm release in the Kubernetes cluster where work runs.
-
-```{important}
-Kubetorch does not create a cluster. You need an existing Kubernetes or k3s
-cluster and permission to install resources into it before installing the
-Kubetorch Helm chart.
-```
+It runs on an existing Kubernetes or k3s cluster, including Amazon EKS, Azure
+AKS, Google GKE, and k3s homelabs.
 
 ## Prerequisites
 
-- An existing Kubernetes or k3s cluster with a reachable API server.
 - Python 3.9 or newer, `uv` or `pip`, and a modern `rsync`.
 - `kubectl` configured for the target cluster.
 - Helm 3 and a cluster storage class.
