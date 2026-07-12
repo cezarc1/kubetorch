@@ -47,6 +47,9 @@ jobs:
           python -m compileall -q examples/tutorials
 
       - name: Build docs with warnings as errors
+        env:
+          GOOGLE_SITE_VERIFICATION: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.GOOGLE_SITE_VERIFICATION || '' }}
+          GOOGLE_ANALYTICS_ID: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.GOOGLE_ANALYTICS_ID || '' }}
         run: |
           python -m sphinx -W --keep-going -b html \
             python_client/kubetorch/docs \
