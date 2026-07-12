@@ -2,6 +2,8 @@
 
 **Agent-friendly ML batch runs and Pythonic remote execution on Kubernetes**
 
+[Documentation](https://cezarc1.github.io/kubetorch/)
+
 Originally built by [Runhouse](https://www.run.house), which has [as of March
 2026 shut down](https://www.linkedin.com/posts/greenbergdon_im-excited-to-share-that-the-runhouse-team-share-7453528259448860673-2n_r/).
 
