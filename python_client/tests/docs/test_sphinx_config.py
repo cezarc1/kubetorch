@@ -46,3 +46,22 @@ def test_homepage_declares_a_sphinx_document_title():
 
     assert "\n# Kubetorch Documentation\n" in source
     assert 'class="kt-hero-heading" aria-hidden="true"' in source
+
+
+def test_documentation_forces_light_mode_before_theme_bootstrap():
+    layout_path = DOCS_ROOT / "_templates/layout.html"
+
+    assert layout_path.is_file()
+    conf = (DOCS_ROOT / "conf.py").read_text()
+    layout = layout_path.read_text()
+    assert '"default_mode": "light"' in conf
+    assert 'localStorage.setItem("mode", "light")' in layout
+    assert 'localStorage.setItem("theme", "light")' in layout
+    assert 'document.documentElement.dataset.theme = "light"' in layout
+
+
+def test_documentation_does_not_render_a_theme_switcher():
+    switcher = DOCS_ROOT / "_templates/theme-switcher.html"
+
+    assert switcher.is_file()
+    assert "theme-switch-button" not in switcher.read_text()
