@@ -3,14 +3,47 @@
 Kubetorch has two pieces: a Python client in the process where you write or
 orchestrate work, and a Helm release in the Kubernetes cluster where work runs.
 
+```{important}
+Kubetorch does not create a cluster. You need an existing Kubernetes or k3s
+cluster and permission to install resources into it before installing the
+Kubetorch Helm chart.
+```
+
 ## Prerequisites
 
+- An existing Kubernetes or k3s cluster with a reachable API server.
 - Python 3.9 or newer, `uv` or `pip`, and a modern `rsync`.
 - `kubectl` configured for the target cluster.
 - Helm 3 and a cluster storage class.
 - Cluster GPU support only when workloads request NVIDIA GPUs.
 
 macOS ships an old `rsync`; install a current version with `brew install rsync`.
+
+### NVIDIA GPU clusters
+
+The NVIDIA GPU Operator is not included in the Kubetorch chart. NVIDIA's
+[GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/getting-started.html)
+is the most complete option for a new GPU cluster because it can manage the
+drivers, NVIDIA Container Toolkit, Kubernetes device plugin, and DCGM exporter.
+
+The Kubetorch chart includes only the standalone NVIDIA device plugin and DCGM
+exporter dependencies. Their defaults are:
+
+- `nvidia-device-plugin.enabled=true`
+- `dcgm-exporter.enabled=false`
+
+Choose one owner for the GPU components:
+
+- **GPU Operator or another cluster-level GPU stack:** install that first, then
+  disable Kubetorch's bundled device plugin and DCGM exporter to avoid duplicate
+  DaemonSets.
+- **Manually prepared GPU nodes:** ensure compatible NVIDIA drivers and
+  container runtime configuration already work on every GPU node. Kubetorch can
+  then install its bundled device plugin, but it will not configure the host
+  drivers and container runtime for you.
+
+CPU-only clusters do not need any NVIDIA components; disable the bundled device
+plugin with `--set nvidia-device-plugin.enabled=false`.
 
 ## Install this fork's client
 
@@ -43,8 +76,8 @@ helm upgrade --install kubetorch \
   --create-namespace
 ```
 
-If your cluster already operates the NVIDIA device plugin and DCGM exporter,
-disable the bundled dependencies:
+If your cluster already operates the NVIDIA GPU Operator, device plugin, or
+DCGM exporter, disable the overlapping bundled dependencies:
 
 ```bash
 helm upgrade --install kubetorch \
