@@ -151,22 +151,6 @@ pre,
   border-left-color: var(--kt-cyan);
 }
 
-.kt-video {
-  margin: 1.5rem 0 2rem;
-}
-
-.kt-video iframe {
-  aspect-ratio: 16 / 9;
-  border: 1px solid var(--kt-line);
-  border-radius: 5px;
-  width: 100%;
-}
-
-.kt-video p {
-  font-size: 0.88rem;
-  margin-top: 0.4rem;
-}
-
 @media (max-width: 680px) {
   .kt-hero {
     padding: 1.7rem 1.25rem;

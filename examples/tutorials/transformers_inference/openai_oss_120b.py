@@ -6,11 +6,15 @@
 # and then you can run `python openai_oss_120b.py` to run main and see how you can call the remote service from
 # any Python script that imports the inference class.
 #
-# ::youtube[OpenAI]{url="https://youtu.be/VCWpCM2m1Hw"}
+# This configuration targets A100 GPUs, so it loads BF16 weights and uses an
+# inferred device map to divide the model across eight GPUs. H100 and H200 users
+# can instead install the optional kernels for MXFP4 quantization. The model is
+# loaded lazily: deployment creates the service, while the first request after a
+# deployment or reload pays the cost of moving the model into GPU memory.
 #
 # ## Decorate a Regular Inference Class
 # We start with a regular inference class called `OpenAIOSSInference` which has a `generate()` method
-# that runs inference with vLLM.
+# that runs inference with Transformers.
 #
 # Then, we apply our decorators which will allow this service to be deployed with `kt deploy.`
 # In the `kt.compute` decorator, we request 8 GPU for each replica of the inference class;

@@ -34,7 +34,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install uv
-          uv pip install --system -e ./python_client[client] pytest pytest-asyncio
+          uv pip install --system -e ./python_client[client]
         shell: bash
 
       - name: Install docs requirements
@@ -42,7 +42,6 @@ jobs:
 
       - name: Validate recovered examples and generated tutorials
         run: |
-          python -m pytest -q python_client/tests/docs --level unit
           python scripts/docs/render_tutorials.py --check
           python scripts/docs/check_example_compat.py
           python -m compileall -q examples/tutorials

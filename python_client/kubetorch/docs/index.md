@@ -5,18 +5,20 @@ html_theme.sidebar_secondary.remove: true
 # Kubetorch Documentation
 
 <div class="kt-hero">
-  <p class="kt-eyebrow">Pythonic remote execution · Kubernetes-native evidence</p>
-  <div class="kt-hero-heading" aria-hidden="true">Move Python to cluster compute.<br><span>Keep the story of every run.</span></div>
-  <p class="kt-lede">Kubetorch gives notebooks, scripts, CI, and agents the same direct path to Kubernetes compute—without turning your training loop into YAML.</p>
+  <p class="kt-eyebrow">Pythonic remote code execution · Kubernetes native</p>
+  <div class="kt-hero-heading" aria-hidden="true">A easier, agent-first, way to train and run inference on Kubernetes</div>
+  <p class="kt-lede">Kubetorch gives notebooks, scripts, CI, and agents the same direct path to Kubernetes GPU aware compute, without you having to know Kubernetes.</p>
   <div class="kt-execution-rail" aria-label="Kubetorch execution flow">
-    <code>local.py</code><b>→</b><code>.to(compute)</code><b>→</b><code>Kubernetes</code><b>→</b><code>kt://evidence</code>
+    <code>train.py</code><b>→</b><code>.to(compute)</code><b>→</b><code>k8s</code><b>→</b><code>kt://artifacts</code>
   </div>
   <p class="kt-actions"><a class="kt-primary" href="start/quickstart.html">Run hello world</a><a href="tutorials/index.html">Explore 33 tutorials</a></p>
 </div>
 
-Kubetorch was created by the Runhouse team. This maintained fork preserves the
-best original guides and examples while adding durable batch runs, source and
-log capture, notes, artifact references, and an agent-oriented operating model.
+Kubetorch was created by the [Runhouse team](https://www.linkedin.com/posts/greenbergdon_im-excited-to-share-that-the-runhouse-team-share-7453528259448860673-2n_r/). This fork, maintained by [@cezarc1](https://github.com/cezarc1) preserves the original idea while adding durable batch runs, source and log capture, notes, artifact references, and an agent first approach.
+
+Kubetorch is meant to be run on a large k8s cluster to small k3s homelabs.
+
+Kubetorchs' main goal is to be a tool for researchers, and engineers to use in their daily work without getting burned by k8s, dealing with slow deployments and rsync.
 
 ::::{grid} 1 1 2 2
 :gutter: 3

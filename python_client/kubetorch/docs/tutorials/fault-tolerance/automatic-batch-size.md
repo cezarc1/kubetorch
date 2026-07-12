@@ -7,9 +7,6 @@
 
 Requires: `GPU`. [View source](https://github.com/cezarc1/kubetorch/blob/main/examples/tutorials/fault_tolerance/batch_size_finding.py).
 ```
-```{youtube} CH0mMcR5hZ8
-:title: Automatic Batch Size Recovery
-```
 In this example, we demonstrate how to handle out-of-memory (OOM) errors during
 distributed training by automatically adjusting the batch size.
 More generically, this shows how Kubetorch gives you powerful programmatic control

@@ -7,13 +7,9 @@
 
 Requires: `Multi-node GPU`. [View source](https://github.com/cezarc1/kubetorch/blob/main/examples/tutorials/pytorch_ddp/pytorch_ddp.py).
 ```
-```{youtube} 5nRRaxZJnUg
-:title: PyTorch Multi-Node Distributed Training
-```
 This is a basic example showing how to Pythonically run a PyTorch distributed training script on
 multiple GPUs. Kubetorch is not solely for PyTorch training (supporting arbitrary code & distribution frameworks),
 but it is a common use case.
-
 
 Often distributed training is launched from multiple parallel CLI commands(`python -m torch.distributed.launch ...`),
 each spawning separate training processes (ranks). Instead, here we are calling `.to()` with Kubetorch to dispatch

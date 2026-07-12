@@ -7,9 +7,6 @@
 
 Requires: `Multi-GPU`. [View source](https://github.com/cezarc1/kubetorch/blob/main/examples/tutorials/transformers_inference/openai_oss_120b.py).
 ```
-```{youtube} VCWpCM2m1Hw
-:title: Serve OpenAI GPT-OSS 120B
-```
 This inference example walks through deploying OpenAI's new open LLM (120B) to 8 GPUs in the cloud.
 We'll use [Transformers' AutoModel](https://huggingface.co/transformers/v3.0.2/model_doc/auto.html)
 to serve the model due to the simplicity of deploying the model across multiple GPUs.
@@ -17,10 +14,15 @@ To deploy the service to your cloud, you'll can simply run `kt deploy openai_oss
 and then you can run `python openai_oss_120b.py` to run main and see how you can call the remote service from
 any Python script that imports the inference class.
 
+This configuration targets A100 GPUs, so it loads BF16 weights and uses an
+inferred device map to divide the model across eight GPUs. H100 and H200 users
+can instead install the optional kernels for MXFP4 quantization. The model is
+loaded lazily: deployment creates the service, while the first request after a
+deployment or reload pays the cost of moving the model into GPU memory.
 
 ## Decorate a Regular Inference Class
 We start with a regular inference class called `OpenAIOSSInference` which has a `generate()` method
-that runs inference with vLLM.
+that runs inference with Transformers.
 
 Then, we apply our decorators which will allow this service to be deployed with `kt deploy.`
 In the `kt.compute` decorator, we request 8 GPU for each replica of the inference class;

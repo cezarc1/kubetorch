@@ -16,16 +16,26 @@ kt logs SERVICE_NAME --namespace kubetorch
 
 ## Interactive debugger
 
-Call a method with debugging enabled or add a `breakpoint()` in trusted
-development code, then connect through the CLI:
+Call a remote function or method with `debug=True`, or add a `breakpoint()` in
+trusted development code. In a distributed workload, guard the breakpoint by
+rank when you only want one debugger session:
+
+```python
+if torch.distributed.get_rank() == 0:
+    breakpoint()
+```
+
+The remote runtime prints the complete connection command. Copy that command
+rather than reconstructing it; depending on where the client runs, it can
+include the pod name, port, namespace, mode, and pod IP:
 
 ```bash
-kt debug POD_NAME --namespace kubetorch
+kt debug POD_NAME --port 5678 --namespace kubetorch --mode pdb --pod-ip POD_IP
 ```
 
-```{youtube} 9vQww8bhCzY
-:title: PDB debugging for distributed training
-```
+The terminal session provides normal PDB commands while the other ranks wait or
+continue according to the coordination in your training code. Finish or
+continue the debugger before tearing down the service.
 
 ## Batch runs
 

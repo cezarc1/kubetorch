@@ -7,14 +7,16 @@
 
 Requires: `GPU`. [View source](https://github.com/cezarc1/kubetorch/blob/main/examples/tutorials/vllm_inference/llama.py).
 ```
-```{youtube} 8slAR7459X4
-:title: Deploy an LLM Inference Service
-```
 This inference _Hello, World_ example walks through deploying an open LLM (Llama 3) to one or more GPUs in the cloud.
 We'll use [vLLM](https://github.com/vllm-project/vllm) to serve the model due to it's high performance.
 To deploy the service to your cloud, you'll can simply run `kt deploy llama.py`. Then, run `python llama.py`
 to see how you can call the remote service from your local machine.
 
+The decorated class becomes a Kubernetes service with an internal HTTP
+endpoint. Importing the class gives Python callers a proxy to that service, so
+the same call works from a local driver or from another application inside the
+cluster. Independently deployed model services can therefore be reused by
+composite applications without putting every model in one image or pod.
 
 ## Decorate a Regular Inference Class
 We start with a regular inference class called `LlamaModel` which has a `generate()` method that runs inference with vLLM.

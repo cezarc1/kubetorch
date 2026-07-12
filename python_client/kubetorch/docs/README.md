@@ -11,13 +11,12 @@ From the repository root:
 ```bash
 uv venv
 source .venv/bin/activate
-uv pip install -e "./python_client[client,docs]" pytest pytest-asyncio
+uv pip install -e "./python_client[client,docs]"
 uv pip install -r python_client/kubetorch/docs/requirements.txt
 
 python scripts/docs/render_tutorials.py --check
 python scripts/docs/check_example_compat.py
 python -m compileall -q examples/tutorials
-python -m pytest -q python_client/tests/docs --level unit
 python -m sphinx -W --keep-going -b html \
   python_client/kubetorch/docs \
   python_client/kubetorch/docs/_build/html

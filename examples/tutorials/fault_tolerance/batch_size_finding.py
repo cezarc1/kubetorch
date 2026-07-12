@@ -1,7 +1,5 @@
 # # Demonstrating Fault Tolerance with Automatic Batch Size Finding
 #
-# ::youtube[Fault Tolerance]{url="https://www.youtube.com/watch?v=CH0mMcR5hZ8"}
-#
 # In this example, we demonstrate how to handle out-of-memory (OOM) errors during
 # distributed training by automatically adjusting the batch size.
 # More generically, this shows how Kubetorch gives you powerful programmatic control

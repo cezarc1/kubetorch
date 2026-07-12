@@ -34,7 +34,6 @@ extensions = [
     "sphinx_design",
     "sphinx_reredirects",
     "_ext.json_globaltoc",
-    "_ext.youtube",
 ]
 
 autodoc_typehints_format = "short"
@@ -42,6 +41,7 @@ autodoc_default_flags = ["members", "show-inheritance"]
 autodoc_member_order = "bysource"
 
 templates_path = ["_templates"]
+html_context = {"default_mode": "light"}
 exclude_patterns = ["_build", "README.md", "Thumbs.db", ".DS_Store"]
 myst_enable_extensions = ["colon_fence", "deflist"]
 
@@ -70,6 +70,8 @@ html_theme_options = {
     "home_page_in_toc": True,
     "use_repository_button": True,
     "use_issues_button": True,
+    "use_fullscreen_button": False,
+    "footer_content_items": [],
     "show_navbar_depth": 2,
 }
 html_static_path = ["_static"]

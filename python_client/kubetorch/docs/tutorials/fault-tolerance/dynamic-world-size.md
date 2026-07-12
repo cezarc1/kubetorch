@@ -7,14 +7,10 @@
 
 Requires: `Multi-node GPU`. [View source](https://github.com/cezarc1/kubetorch/blob/main/examples/tutorials/fault_tolerance/dynamic_world_size.py).
 ```
-```{youtube} k1olO4P_1WY
-:title: PyTorch Distributed Training with Dynamic World Size
-```
 This example demonstrates how Kubetorch handles dynamic scaling of distributed training jobs.
 Unlike traditional preemption recovery which assumes pods fail and restart, this example shows
 how to adapt training when pods are added or removed from the cluster, allowing elastic scaling
 of distributed workloads.
-
 
 We begin by importing the necessary libraries and setting up the environment.
 ```python

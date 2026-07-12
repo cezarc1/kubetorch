@@ -7,19 +7,21 @@
 
 Requires: `Ray`, `Multi-GPU`. [View source](https://github.com/cezarc1/kubetorch/blob/main/examples/tutorials/reinforcement_learning/verl_training/verl_train.py).
 ```
-```{youtube} -oz49qt_uSM
-:title: GRPO Training with VeRL
-```
 In this example, we will show you how simple it is to launch an RL training with
 `verl` using Kubetorch and Ray. [verl](https://github.com/volcengine/verl) is a popular
 RL training library for large language models (LLMs).
-
 
 ## Overview
 There are two main components used in this training example:
 * A `run_grpo` function which we will run on a Ray cluster that we bring up in `main()`
 * The `verl` PPO trainer, `run_ppo`, which we will call with our config as-is once all the data and model
 have been downloaded.
+
+Kubetorch owns the infrastructure boundary in this example: it forms the Ray
+cluster, synchronizes this source, and dispatches `run_grpo`. VeRL still owns
+the RL algorithm, rollout and training configuration, data preparation, and
+vLLM integration. This makes the example useful for adopting an existing VeRL
+program without hiding which system is responsible for each part of the run.
 ```python
 import os
 
