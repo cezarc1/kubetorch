@@ -5,14 +5,6 @@ catalog and keep the runnable source beside Kubetorch itself. Start with a
 familiar single-service example, then move into distributed and heterogeneous
 systems.
 
-```{admonition} Read the validation badge
-:class: important
-
-**Validated** records a real execution. **Adapted** means the example uses the
-current API and passes repository checks. **Reference** identifies examples
-that require external infrastructure or are supporting code.
-```
-
 ::::{grid} 1 2 3 3
 :gutter: 2
 
