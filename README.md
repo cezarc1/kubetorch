@@ -25,6 +25,8 @@ execution model for notebooks, IDEs, CI, and production code.
 
 ## Quick Start
 
+Check out the [Docs](https://cezarc1.github.io/kubetorch/).
+
 Prerequisites:
 
 - a working Kubernetes context in `kubectl`;
