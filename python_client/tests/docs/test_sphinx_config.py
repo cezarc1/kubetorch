@@ -65,3 +65,9 @@ def test_documentation_does_not_render_a_theme_switcher():
 
     assert switcher.is_file()
     assert "theme-switch-button" not in switcher.read_text()
+
+
+def test_documentation_disables_fullscreen_mode():
+    conf = (DOCS_ROOT / "conf.py").read_text()
+
+    assert '"use_fullscreen_button": False' in conf

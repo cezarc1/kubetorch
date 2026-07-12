@@ -71,6 +71,7 @@ html_theme_options = {
     "home_page_in_toc": True,
     "use_repository_button": True,
     "use_issues_button": True,
+    "use_fullscreen_button": False,
     "show_navbar_depth": 2,
 }
 html_static_path = ["_static"]
