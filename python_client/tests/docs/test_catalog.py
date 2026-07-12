@@ -19,6 +19,7 @@ def test_repository_catalog_covers_recovered_routes_and_tutorials():
         "adapted",
         "reference",
     }
+    assert all(tutorial.video_id is None for tutorial in catalog.tutorials)
     assert all((REPO_ROOT / tutorial.source).is_file() for tutorial in catalog.tutorials)
 
 

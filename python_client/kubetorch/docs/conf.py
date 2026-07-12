@@ -34,7 +34,6 @@ extensions = [
     "sphinx_design",
     "sphinx_reredirects",
     "_ext.json_globaltoc",
-    "_ext.youtube",
 ]
 
 autodoc_typehints_format = "short"
@@ -72,6 +71,7 @@ html_theme_options = {
     "use_repository_button": True,
     "use_issues_button": True,
     "use_fullscreen_button": False,
+    "footer_content_items": [],
     "show_navbar_depth": 2,
 }
 html_static_path = ["_static"]

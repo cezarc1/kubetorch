@@ -4,8 +4,6 @@
 # how to adapt training when pods are added or removed from the cluster, allowing elastic scaling
 # of distributed workloads.
 #
-# ::youtube[Fault Tolerance]{url="https://www.youtube.com/watch?v=k1olO4P_1WY"}
-#
 # We begin by importing the necessary libraries and setting up the environment.
 
 import argparse

@@ -7,13 +7,9 @@
 
 Requires: `GPU`, `Sandbox service`. [View source](https://github.com/cezarc1/kubetorch/blob/main/examples/tutorials/reinforcement_learning/trl/trl_with_code_sandbox.py).
 ```
-```{youtube} yB29sojkAiU
-:title: RL with TRL and a SWE-ReX Code Sandbox
-```
 In this example, we will show you how simple it is to launch an RL training
 while dispatching execution to a code sandbox (running on separate compute)
 from within the trainer program.
-
 
 There are three main components here:
 * A code agent class, which will run code and return stdout/err + success/fail

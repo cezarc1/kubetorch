@@ -7,13 +7,9 @@
 
 Requires: `GPU`. [View source](https://github.com/cezarc1/kubetorch/blob/main/examples/tutorials/rag_composite_inference/rag_app.py).
 ```
-```{youtube} sqNYnowFufY
-:title: RAG with Separate Embedding and Generation Services
-```
 Retrieval augmented generation (RAG) combines custom traditional information retrieval with large language models
 to enirch the response from the LLM. We can build such a composite inference app by using Kubetorch to deploy
 independent vector embedder and LLM services, then launch a FastAPI app that calls these services to handle requests.
-
 
 ## Overview
 In this example, we build a FastAPI application that extracts content from public URLs, embeds the text into a vector

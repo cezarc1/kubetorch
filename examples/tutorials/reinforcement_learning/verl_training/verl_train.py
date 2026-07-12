@@ -3,13 +3,17 @@
 # `verl` using Kubetorch and Ray. [verl](https://github.com/volcengine/verl) is a popular
 # RL training library for large language models (LLMs).
 #
-# ::youtube[verl]{url="https://youtu.be/-oz49qt_uSM"}
-#
 # ## Overview
 # There are two main components used in this training example:
 # * A `run_grpo` function which we will run on a Ray cluster that we bring up in `main()`
 # * The `verl` PPO trainer, `run_ppo`, which we will call with our config as-is once all the data and model
 # have been downloaded.
+#
+# Kubetorch owns the infrastructure boundary in this example: it forms the Ray
+# cluster, synchronizes this source, and dispatches `run_grpo`. VeRL still owns
+# the RL algorithm, rollout and training configuration, data preparation, and
+# vLLM integration. This makes the example useful for adopting an existing VeRL
+# program without hiding which system is responsible for each part of the run.
 
 import os
 

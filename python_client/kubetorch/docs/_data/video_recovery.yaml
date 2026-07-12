@@ -1,0 +1,61 @@
+videos:
+  - id: CH0mMcR5hZ8
+    title: "Fault Tolerant Training: Automatically Finding Batch Size for PyTorch Distributed"
+    source: examples/tutorials/fault_tolerance/batch_size_finding.py
+    target: tutorials/fault-tolerance/automatic-batch-size
+    disposition: no-new-context
+    context: Existing tutorial already explains the progressive batch-size search and OOM recovery loop.
+  - id: k1olO4P_1WY
+    title: "Fault Tolerance: Distributed Training with Dynamic World Size using Kubetorch"
+    source: examples/tutorials/fault_tolerance/dynamic_world_size.py
+    target: tutorials/fault-tolerance/dynamic-world-size
+    disposition: no-new-context
+    context: Existing tutorial already explains membership errors, process-group reconstruction, checkpoint selection, and weight broadcast.
+  - id: 5nRRaxZJnUg
+    title: "Kubetorch - PyTorch Multi-Node Distributed Training Demo"
+    source: examples/tutorials/pytorch_ddp/pytorch_ddp.py
+    target: tutorials/distributed/pytorch-ddp
+    disposition: no-new-context
+    context: Existing tutorial already covers rank wiring, hot source synchronization, streamed failures, debugging, and production reuse.
+  - id: sqNYnowFufY
+    title: RAG App with Vector Embedding and LLM Generation using Kubetorch
+    source: examples/tutorials/rag_composite_inference/rag_app.py
+    target: tutorials/inference/rag-composite
+    disposition: no-new-context
+    context: Existing tutorial already explains independent service images, hardware, scaling, reuse, and the complete RAG data flow.
+  - id: yB29sojkAiU
+    title: "Reinforcement Learning with Kubetorch: Launch a Code Sandbox for RL Training with TRL"
+    source: examples/tutorials/reinforcement_learning/trl/trl_with_code_sandbox.py
+    target: tutorials/reinforcement-learning/trl-sandbox
+    disposition: no-new-context
+    context: Existing tutorial already explains the nested sandbox service, separate compute and image, parallel calls, and reward flow.
+  - id: -oz49qt_uSM
+    title: Reinforcement Learning (RL) Training with VeRL and Kubetorch
+    source: examples/tutorials/reinforcement_learning/verl_training/verl_train.py
+    target: tutorials/reinforcement-learning/verl-grpo
+    disposition: context-added
+    context: Added the boundary between Kubetorch cluster orchestration and VeRL-owned RL behavior.
+  - id: VCWpCM2m1Hw
+    title: Run OpenAI's open weights model on your own Kubernetes cluster with Kubetorch
+    source: examples/tutorials/transformers_inference/openai_oss_120b.py
+    target: tutorials/inference/openai-oss-120b
+    disposition: context-added
+    context: Added A100 BF16 device-map behavior, the H100/H200 MXFP4 option, lazy loading, and corrected the inference library description.
+  - id: 8slAR7459X4
+    title: Autoscaling Llama Inference with vLLM using Kubetorch
+    source: examples/tutorials/vllm_inference/llama.py
+    target: tutorials/inference/vllm-hello-world
+    disposition: context-added
+    context: Added the Kubernetes service and Python proxy boundary plus service reuse in composite applications.
+  - id: 9vQww8bhCzY
+    title: "Kubetorch Demo: PDB Debugger for Distributed Training"
+    source: null
+    target: guides/debugging
+    disposition: context-added
+    context: Added current debug=True and breakpoint entry paths, rank selection, and the complete runtime-printed connection command.
+  - id: yJ3b6Gps9qI
+    title: Parallel Batch Inference with DeepSeek OCR
+    source: examples/tutorials/batch_inference/simple_deepseek_ocr.py
+    target: null
+    disposition: context-added
+    context: Added continuous batching, fixed replicas, per-pod concurrency, driver backpressure, and the cluster-driver option.

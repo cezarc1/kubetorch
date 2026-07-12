@@ -52,7 +52,7 @@ remote = kt.fn(lambda: \"ok\").to(compute)
     assert "remote = kt.fn" in rendered
 
 
-def test_render_literate_source_uses_privacy_enhanced_video_directive():
+def test_render_literate_source_discards_legacy_video_marker():
     source = """# # Video demo
 # ::youtube[Old marker]{url=\"https://www.youtube.com/watch?v=abc123\"}
 print(\"hello\")
@@ -61,8 +61,8 @@ print(\"hello\")
     rendered = render_literate_source(source, tutorial(video_id="abc123"))
 
     assert "::youtube" not in rendered
-    assert "```{youtube} abc123" in rendered
-    assert "youtube-nocookie.com" not in rendered
+    assert "```{youtube}" not in rendered
+    assert "abc123" not in rendered
 
 
 def test_sync_outputs_check_mode_detects_drift(tmp_path):

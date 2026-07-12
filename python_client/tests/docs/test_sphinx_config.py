@@ -71,3 +71,9 @@ def test_documentation_disables_fullscreen_mode():
     conf = (DOCS_ROOT / "conf.py").read_text()
 
     assert '"use_fullscreen_button": False' in conf
+
+
+def test_documentation_disables_content_footer_items():
+    conf = (DOCS_ROOT / "conf.py").read_text()
+
+    assert '"footer_content_items": []' in conf

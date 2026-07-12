@@ -4,7 +4,11 @@
 # To deploy the service to your cloud, you'll can simply run `kt deploy llama.py`. Then, run `python llama.py`
 # to see how you can call the remote service from your local machine.
 #
-# ::youtube[Llama Inference with vLLM]{url="https://www.youtube.com/watch?v=8slAR7459X4"}
+# The decorated class becomes a Kubernetes service with an internal HTTP
+# endpoint. Importing the class gives Python callers a proxy to that service, so
+# the same call works from a local driver or from another application inside the
+# cluster. Independently deployed model services can therefore be reused by
+# composite applications without putting every model in one image or pod.
 #
 # ## Decorate a Regular Inference Class
 # We start with a regular inference class called `LlamaModel` which has a `generate()` method that runs inference with vLLM.

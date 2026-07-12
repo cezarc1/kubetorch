@@ -4,8 +4,6 @@
 # to enirch the response from the LLM. We can build such a composite inference app by using Kubetorch to deploy
 # independent vector embedder and LLM services, then launch a FastAPI app that calls these services to handle requests.
 #
-# ::youtube[RAG App with Vector Embedding and LLM Generation]{url="https://www.youtube.com/watch?v=sqNYnowFufY"}
-#
 # ## Overview
 # In this example, we build a FastAPI application that extracts content from public URLs, embeds the text into a vector
 # database, and uses those embeddings to generate accurate, context-aware answers to user questions.

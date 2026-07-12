@@ -65,13 +65,6 @@ def render_literate_source(source: str, tutorial: Tutorial) -> str:
 
     lines = source.splitlines()
     parts = [GENERATED_MARKER, f"# {tutorial.title}\n", _status_panel(tutorial)]
-    if tutorial.video_id:
-        parts.append(
-            f"```{{youtube}} {tutorial.video_id}\n"
-            f":title: {tutorial.title}\n"
-            "```\n"
-        )
-
     code: list[str] = []
     first_heading = True
     index = 0
